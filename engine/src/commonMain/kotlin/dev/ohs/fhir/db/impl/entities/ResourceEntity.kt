@@ -16,37 +16,27 @@
 
 package dev.ohs.fhir.db.impl.entities
 
-import androidx.room.Embedded
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.fhir.model.r4.terminologies.ResourceType
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
-import dev.ohs.fhir.index.entities.PositionIndex
 
 @Entity(
   indices =
     [
-      Index(value = ["resourceType", "index_latitude", "index_longitude"]),
-      // keep this index for faster foreign lookup
-      Index(value = ["resourceUuid"]),
-    ],
-  foreignKeys =
-    [
-      ForeignKey(
-        entity = ResourceEntity::class,
-        parentColumns = ["resourceUuid"],
-        childColumns = ["resourceUuid"],
-        onDelete = ForeignKey.CASCADE,
-        onUpdate = ForeignKey.NO_ACTION,
-        deferred = true,
-      ),
+      Index(value = ["resourceUuid"], unique = true),
+      Index(value = ["resourceType", "resourceId"], unique = true),
     ],
 )
-internal data class PositionIndexEntity(
+internal data class ResourceEntity(
   @PrimaryKey(autoGenerate = true) val id: Long,
   val resourceUuid: Uuid,
   val resourceType: ResourceType,
-  @Embedded(prefix = "index_") val index: PositionIndex,
+  val resourceId: String,
+  val serializedResource: String,
+  val versionId: String?,
+  val lastUpdatedRemote: Instant?,
+  val lastUpdatedLocal: Instant?,
 )
