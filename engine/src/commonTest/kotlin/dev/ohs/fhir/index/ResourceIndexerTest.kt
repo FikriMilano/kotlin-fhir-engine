@@ -76,11 +76,10 @@ import com.google.fhir.model.r4.Decimal as FhirDecimal
 import com.google.fhir.model.r4.Integer as FhirInteger
 import com.google.fhir.model.r4.String as FhirString
 
+/** Integration & Unit tests for {@link ResourceIndexerImpl}. */
 class ResourceIndexerTest {
 
   private val resourceIndexer = ResourceIndexer(SearchParamDefinitionsProviderImpl())
-
-  // --- helpers ---
 
   private fun fhirInstant(iso: String): Instant = Instant(value = FhirDateTime.fromString(iso))
 
@@ -90,8 +89,7 @@ class ResourceIndexerTest {
   private fun epochMillis(iso: String): Long =
     kotlin.time.Instant.parse(iso).toEpochMilliseconds()
 
-  // --- tests ---
-
+  /** Unit tests for resource indexer */
   @Test
   fun index_id() {
     val patient = Patient(id = "3f511720-43c4-451a-830b-7f4817c619fb")
@@ -636,9 +634,16 @@ class ResourceIndexerTest {
           ),
       )
     val resourceIndices = resourceIndexer.index(activityDefinition)
-    val refs = resourceIndices.referenceIndices.filter { it.name == "depends-on" }
-    assertTrue(refs.any { it.value == "Library/someLibrary" })
-    assertTrue(refs.any { it.value == "Questionnaire/someQuestionnaire" })
+    val indexPath =
+      "ActivityDefinition.relatedArtifact.where(type='depends-on').resource | ActivityDefinition.library"
+    val indexName = "depends-on"
+    assertEquals(
+      setOf(
+        ReferenceIndex(indexName, indexPath, "Library/someLibrary"),
+        ReferenceIndex(indexName, indexPath, "Questionnaire/someQuestionnaire"),
+      ),
+      resourceIndices.referenceIndices.toSet(),
+    )
   }
 
   @Test
@@ -660,9 +665,15 @@ class ResourceIndexerTest {
           ),
       )
     val resourceIndices = resourceIndexer.index(planDefinition)
-    val refs = resourceIndices.referenceIndices.filter { it.name == "definition" }
-    assertTrue(refs.any { it.value == "http://action1.com" })
-    assertTrue(refs.any { it.value == "http://action2.com" })
+    val indexPath = "PlanDefinition.action.definition"
+    val indexName = "definition"
+    assertEquals(
+      setOf(
+        ReferenceIndex(indexName, indexPath, "http://action1.com"),
+        ReferenceIndex(indexName, indexPath, "http://action2.com"),
+      ),
+      resourceIndices.referenceIndices.toSet(),
+    )
   }
 
   @Test
@@ -907,8 +918,6 @@ class ResourceIndexerTest {
     assertTrue(resourceIndices.positionIndices.isEmpty())
   }
 
-  // --- HumanName / Address asString tests ---
-
   @Test
   fun index_string_humanName() {
     val patient =
@@ -1062,8 +1071,6 @@ class ResourceIndexerTest {
     val resourceIndices = resourceIndexer.index(patient)
     assertFalse(resourceIndices.stringIndices.any { it.name == "address" })
   }
-
-  // --- Deduplication tests ---
 
   @Test
   fun index_duplicateString_deduplicateStringIndices() {
@@ -1234,28 +1241,54 @@ class ResourceIndexerTest {
             ),
           ),
       )
+    // The indexer creates 2 QuantityIndex per valueQuantity in this particular example because each
+    // Observation.component.value can be indexed for both [Observation.SP_COMPONENT_VALUE_QUANTITY]
+    // and [Observation.SP_COMBO_VALUE_QUANTITY]
     val resourceIndices = resourceIndexer.index(observation)
-    // Each component's valueQuantity is indexed under both `component-value-quantity` and
-    // `combo-value-quantity`. Expect at least the 4 indices below.
-    assertTrue(
-      resourceIndices.quantityIndices.any {
-        it.name == "component-value-quantity" && it.value == BigDecimal.fromInt(70)
-      },
-    )
-    assertTrue(
-      resourceIndices.quantityIndices.any {
-        it.name == "component-value-quantity" && it.value == BigDecimal.fromInt(110)
-      },
-    )
-    assertTrue(
-      resourceIndices.quantityIndices.any {
-        it.name == "combo-value-quantity" && it.value == BigDecimal.fromInt(70)
-      },
-    )
-    assertTrue(
-      resourceIndices.quantityIndices.any {
-        it.name == "combo-value-quantity" && it.value == BigDecimal.fromInt(110)
-      },
+    assertEquals(
+      setOf(
+        QuantityIndex(
+          name = "component-value-quantity",
+          path =
+            "(Observation.component.value as Quantity) " +
+              "| (Observation.component.value as SampledData)",
+          system = "http://unitsofmeasure.org",
+          code = "",
+          value = BigDecimal.fromInt(70),
+        ),
+        QuantityIndex(
+          name = "component-value-quantity",
+          path =
+            "(Observation.component.value as Quantity) " +
+              "| (Observation.component.value as SampledData)",
+          system = "http://unitsofmeasure.org",
+          code = "",
+          value = BigDecimal.fromInt(110),
+        ),
+        QuantityIndex(
+          name = "combo-value-quantity",
+          path =
+            "(Observation.value as Quantity) " +
+              "| (Observation.value as SampledData) " +
+              "| (Observation.component.value as Quantity) " +
+              "| (Observation.component.value as SampledData)",
+          system = "http://unitsofmeasure.org",
+          code = "",
+          value = BigDecimal.fromInt(70),
+        ),
+        QuantityIndex(
+          name = "combo-value-quantity",
+          path =
+            "(Observation.value as Quantity) " +
+              "| (Observation.value as SampledData) " +
+              "| (Observation.component.value as Quantity) " +
+              "| (Observation.component.value as SampledData)",
+          system = "http://unitsofmeasure.org",
+          code = "",
+          value = BigDecimal.fromInt(110),
+        ),
+      ),
+      resourceIndices.quantityIndices.toSet(),
     )
   }
 
@@ -1309,30 +1342,35 @@ class ResourceIndexerTest {
         ),
       )
     val resourceIndices = indexer.index(patient)
-    assertContains(
-      resourceIndices.stringIndices,
-      StringIndex(
-        name = "mothers-maiden-name",
-        path =
-          "Patient.extension('http://hl7.org/fhir/StructureDefinition/patient-mothersMaidenName').value.as(String)",
-        value = "Marca",
+    assertEquals(
+      setOf(
+        StringIndex(
+          name = "mothers-maiden-name",
+          path =
+            "Patient.extension('http://hl7.org/fhir/StructureDefinition/patient-mothersMaidenName').value.as(String)",
+          value = "Marca",
+        ),
+        StringIndex(
+          name = "identifierPartial",
+          path = "Patient.identifier.value",
+          value = "OfficialIdentifier_DarcySmith_0001",
+        ),
+        StringIndex(name = "family", path = "Patient.name.family", value = "Smith"),
+        StringIndex(name = "name", path = "Patient.name", value = "Darcy Smith"),
+        StringIndex(name = "phonetic", path = "Patient.name", value = "Darcy Smith"),
+        StringIndex(name = "given", path = "Patient.name.given", value = "Darcy"),
       ),
-    )
-    assertContains(
-      resourceIndices.stringIndices,
-      StringIndex(
-        name = "identifierPartial",
-        path = "Patient.identifier.value",
-        value = "OfficialIdentifier_DarcySmith_0001",
-      ),
+      resourceIndices.stringIndices.toSet(),
     )
   }
 
-  // --- Fixture-based tests ---
-  // Engine's versions read the FHIR resources from JSON files via HAPI's `readFromFile(...)`.
-  // commonTest can't do filesystem reads portably, so the fixture JSONs are embedded as
-  // multi-line string constants and parsed via `FhirR4Json().decodeFromString(...)`.
-
+  /**
+   * Integration tests for ResourceIndexer.
+   *
+   * KMP note: engine's versions read fixture FHIR resources from JSON files via HAPI's
+   * `readFromFile(...)`. commonTest can't do filesystem reads portably, so the fixture JSONs are
+   * embedded as multi-line string constants and parsed via `FhirR4Json().decodeFromString(...)`.
+   */
   @Test
   fun index_invoice() {
     val invoice = FhirR4Json().decodeFromString(INVOICE_JSON) as com.google.fhir.model.r4.Invoice
