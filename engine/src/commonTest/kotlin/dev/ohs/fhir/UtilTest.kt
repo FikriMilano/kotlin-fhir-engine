@@ -22,7 +22,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** `operationOutcomeIsSuccess_*` tests skipped pending sync implementation. */
+// TODO: `operationOutcomeIsSuccess_*` tests skipped pending sync implementation.
 class UtilTest {
 
   @Test
