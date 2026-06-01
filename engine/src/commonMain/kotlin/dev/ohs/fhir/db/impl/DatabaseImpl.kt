@@ -42,7 +42,6 @@ import dev.ohs.fhir.db.impl.entities.TokenIndexEntity
 import dev.ohs.fhir.db.impl.entities.UriIndexEntity
 import dev.ohs.fhir.index.ResourceIndexer
 import dev.ohs.fhir.index.ResourceIndices
-import dev.ohs.fhir.logicalId
 import dev.ohs.fhir.resourceType
 import dev.ohs.fhir.resourceTypeEnum
 import dev.ohs.fhir.search.SearchQuery
@@ -388,7 +387,7 @@ internal class DatabaseImpl(
       val resourceUuid = currentResourceEntity.resourceUuid
       updateResourceEntity(resourceUuid, updatedResource)
 
-      if (currentResourceId == updatedResource.logicalId) {
+      if (currentResourceId == updatedResource.id.orEmpty()) {
         return@withTransaction
       }
 
@@ -399,7 +398,7 @@ internal class DatabaseImpl(
         localChangeDao.updateResourceIdAndReferences(
           resourceUuid = resourceUuid,
           oldResource = oldResource,
-          updatedResourceId = updatedResource.logicalId,
+          updatedResourceId = updatedResource.id.orEmpty(),
         )
 
       updateReferringResources(
@@ -424,9 +423,9 @@ internal class DatabaseImpl(
     oldResource: Resource,
     updatedResource: Resource,
   ) {
-    val oldReferenceValue = "${oldResource.resourceTypeEnum.name}/${oldResource.logicalId}"
+    val oldReferenceValue = "${oldResource.resourceTypeEnum.name}/${oldResource.id.orEmpty()}"
     val updatedReferenceValue =
-      "${updatedResource.resourceTypeEnum.name}/${updatedResource.logicalId}"
+      "${updatedResource.resourceTypeEnum.name}/${updatedResource.id.orEmpty()}"
     referringResourcesUuids.forEach { resourceUuid ->
       resourceDao.getResourceEntity(resourceUuid)?.let {
         val referringResource = FhirR4Json().decodeFromString(it.serializedResource)
