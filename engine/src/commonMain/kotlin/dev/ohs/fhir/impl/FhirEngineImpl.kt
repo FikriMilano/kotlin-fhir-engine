@@ -22,7 +22,6 @@ import dev.ohs.fhir.OffsetDateTime
 import dev.ohs.fhir.SearchResult
 import dev.ohs.fhir.db.Database
 import dev.ohs.fhir.db.LocalChangeResourceReference
-import dev.ohs.fhir.logicalId
 import dev.ohs.fhir.resourceTypeEnum
 import dev.ohs.fhir.search.Search
 import dev.ohs.fhir.search.count
@@ -136,15 +135,15 @@ internal class FhirEngineImpl(private val database: Database) : FhirEngine {
     conflictResolver: ConflictResolver,
   ) =
     resources
-      .filter { conflictingResourceIds.contains(it.logicalId) }
-      .map { conflictResolver.resolve(database.select(it.resourceTypeEnum, it.logicalId), it) }
+      .filter { conflictingResourceIds.contains(it.id.orEmpty()) }
+      .map { conflictResolver.resolve(database.select(it.resourceTypeEnum, it.id.orEmpty()), it) }
       .filterIsInstance<Resolved>()
       .map { it.resolved }
       .takeIf { it.isNotEmpty() }
 
   private suspend fun getConflictingResourceIds(resources: List<Resource>) =
     resources
-      .map { it.logicalId }
+      .map { it.id.orEmpty() }
       .toSet()
       .intersect(database.getAllLocalChanges().map { it.resourceId }.toSet())
 

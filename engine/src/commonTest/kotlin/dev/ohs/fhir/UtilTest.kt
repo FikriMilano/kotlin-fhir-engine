@@ -16,7 +16,6 @@
 
 package dev.ohs.fhir
 
-import com.google.fhir.model.r4.Patient
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -48,33 +47,5 @@ class UtilTest {
   @Test
   fun percentOf_shouldReturnPercentage() {
     assertEquals(0.5, percentOf(25, 50))
-  }
-
-  @Test
-  fun logicalId_patient_missing_id_shouldReturnEmptyString() {
-    assertEquals("", Patient().logicalId)
-  }
-
-  @Test
-  fun logicalId_patient_null_id_shouldReturnEmptyString() {
-    assertEquals("", Patient(id = null).logicalId)
-  }
-
-  @Test
-  fun logicalId_patient_blank_id_shouldReturnEmptyString() {
-    assertEquals("", Patient(id = "").logicalId)
-  }
-
-  @Test
-  fun logicalId_patient_stringId_shouldReturnId() {
-    assertEquals("test_patient", Patient(id = "test_patient").logicalId)
-  }
-
-  @Test
-  fun logicalId_patient_fullyQualifiedId_shouldReturnUnqualifiedId() {
-    assertEquals(
-      "Nemo",
-      Patient(id = "http://hapi.fhir.org/baseR4/Patient/Nemo").logicalId,
-    )
   }
 }

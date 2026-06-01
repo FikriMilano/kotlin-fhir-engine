@@ -22,7 +22,6 @@ import dev.ohs.fhir.SearchResult
 import dev.ohs.fhir.UcumValue
 import dev.ohs.fhir.UnitConverter
 import dev.ohs.fhir.db.Database
-import dev.ohs.fhir.logicalId
 import dev.ohs.fhir.resourceType
 import dev.ohs.fhir.ucumUrl
 import com.google.fhir.model.r4.FhirDate
@@ -63,7 +62,7 @@ internal suspend fun <R : Resource> Search.execute(database: Database): List<Sea
     if (revIncludes.isEmpty() || baseResources.isEmpty()) {
       null
     } else {
-      val typeIdPairs = baseResources.map { "${it.resource.resourceType}/${it.resource.logicalId}" }
+      val typeIdPairs = baseResources.map { "${it.resource.resourceType}/${it.resource.id.orEmpty()}" }
       database.searchReverseReferencedResources(getRevIncludeQuery(typeIdPairs))
     }
 
@@ -80,7 +79,7 @@ internal suspend fun <R : Resource> Search.execute(database: Database): List<Sea
           ?.asSequence()
           ?.filter {
             it.baseResourceTypeWithId ==
-              "${(baseResource as Resource).resourceType}/${baseResource.logicalId}"
+              "${(baseResource as Resource).resourceType}/${baseResource.id.orEmpty()}"
           }
           ?.groupBy(
             {
