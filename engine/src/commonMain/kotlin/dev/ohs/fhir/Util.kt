@@ -16,7 +16,6 @@
 
 package dev.ohs.fhir
 
-import com.google.fhir.model.r4.Resource
 import kotlin.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.async
@@ -39,13 +38,6 @@ suspend fun <A, B> Iterable<A>.pmap(
   dispatcher: CoroutineDispatcher,
   f: suspend (A) -> B,
 ): List<B> = coroutineScope { map { async(dispatcher) { f(it) } }.awaitAll() }
-
-/**
- * The logical (unqualified) part of the ID. For example, if the ID is
- * "http://example.com/fhir/Patient/123/_history/456", then this value would be "123".
- */
-internal val Resource.logicalId: String
-  get() = id?.substringBefore("/_history/")?.substringAfterLast("/").orEmpty()
 
 /** Url for the UCUM system of measures. */
 internal const val ucumUrl = "http://unitsofmeasure.org"
