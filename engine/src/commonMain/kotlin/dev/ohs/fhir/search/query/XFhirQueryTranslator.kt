@@ -31,9 +31,9 @@ import dev.ohs.fhir.search.StringClientParam
 import dev.ohs.fhir.search.TokenClientParam
 import dev.ohs.fhir.search.UriClientParam
 import dev.ohs.fhir.search.filter.TokenFilterValue
-import com.google.fhir.model.r4.FhirDate
-import com.google.fhir.model.r4.FhirDateTime
-import com.google.fhir.model.r4.terminologies.ResourceType
+import dev.ohs.fhir.model.r4.FhirDate
+import dev.ohs.fhir.model.r4.FhirDateTime
+import dev.ohs.fhir.model.r4.terminologies.ResourceType
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 
 /**

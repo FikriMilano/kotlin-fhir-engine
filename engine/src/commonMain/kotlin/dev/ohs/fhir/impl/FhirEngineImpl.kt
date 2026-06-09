@@ -33,8 +33,8 @@ import dev.ohs.fhir.sync.upload.ResourceConsolidatorFactory
 import dev.ohs.fhir.sync.upload.SyncUploadProgress
 import dev.ohs.fhir.sync.upload.UploadRequestResult
 import dev.ohs.fhir.sync.upload.UploadStrategy
-import com.google.fhir.model.r4.Resource
-import com.google.fhir.model.r4.terminologies.ResourceType
+import dev.ohs.fhir.model.r4.Resource
+import dev.ohs.fhir.model.r4.terminologies.ResourceType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow

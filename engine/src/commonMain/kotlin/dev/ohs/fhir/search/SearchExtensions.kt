@@ -20,7 +20,7 @@ import dev.ohs.fhir.FhirEngine
 import dev.ohs.fhir.SearchResult
 import dev.ohs.fhir.getResourceType
 import dev.ohs.fhir.search.query.XFhirQueryTranslator
-import com.google.fhir.model.r4.Resource
+import dev.ohs.fhir.model.r4.Resource
 
 /**
  * Searches the database and returns a list of resources matching the given [Search] criteria.

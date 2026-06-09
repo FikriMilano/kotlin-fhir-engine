@@ -30,7 +30,7 @@ import dev.ohs.fhir.search.filter.TokenParamFilterCriteria
 import dev.ohs.fhir.search.filter.TokenParamFilterCriterion
 import dev.ohs.fhir.search.filter.UriFilterCriteria
 import dev.ohs.fhir.search.filter.UriParamFilterCriterion
-import com.google.fhir.model.r4.terminologies.ResourceType
+import dev.ohs.fhir.model.r4.terminologies.ResourceType
 
 /** Specifies search criteria for querying the FHIR database. */
 @SearchDslMarker

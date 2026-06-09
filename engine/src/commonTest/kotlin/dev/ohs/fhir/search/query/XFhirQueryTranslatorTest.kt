@@ -25,9 +25,9 @@ import dev.ohs.fhir.search.Search
 import dev.ohs.fhir.search.query.XFhirQueryTranslator.applyFilterParam
 import dev.ohs.fhir.search.query.XFhirQueryTranslator.applySortParam
 import dev.ohs.fhir.search.query.XFhirQueryTranslator.translate
-import com.google.fhir.model.r4.FhirDate
-import com.google.fhir.model.r4.FhirDateTime
-import com.google.fhir.model.r4.terminologies.ResourceType
+import dev.ohs.fhir.model.r4.FhirDate
+import dev.ohs.fhir.model.r4.FhirDateTime
+import dev.ohs.fhir.model.r4.terminologies.ResourceType
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -44,7 +44,7 @@ import kotlin.test.assertTrue
  * KMP adaptations:
  * - Robolectric removed; Truth → kotlin.test; JUnit → kotlin.test (`@BeforeTest`/`@AfterTest`).
  * - HAPI `Enumerations.SearchParamType` → `dev.ohs.fhir.index.SearchParamType`.
- * - HAPI `ResourceType` → `com.google.fhir.model.r4.terminologies.ResourceType`.
+ * - HAPI `ResourceType` → `dev.ohs.fhir.model.r4.terminologies.ResourceType`.
  * - HAPI `SearchParameter` custom param → `SearchParamDefinition` in `FhirEngineConfiguration`.
  * - `provider.forceCleanup()` → `FhirEngineProvider.clearInstance()`.
  * - `value.toBigDecimal()` → ionspin `BigDecimal.parseString(...)`.

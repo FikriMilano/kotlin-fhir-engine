@@ -16,12 +16,12 @@
 
 package dev.ohs.fhir.db.impl
 
-import com.google.fhir.model.r4.CodeableConcept
-import com.google.fhir.model.r4.Enumeration
-import com.google.fhir.model.r4.Observation
-import com.google.fhir.model.r4.Patient
-import com.google.fhir.model.r4.Reference
-import com.google.fhir.model.r4.String as FhirString
+import dev.ohs.fhir.model.r4.CodeableConcept
+import dev.ohs.fhir.model.r4.Enumeration
+import dev.ohs.fhir.model.r4.Observation
+import dev.ohs.fhir.model.r4.Patient
+import dev.ohs.fhir.model.r4.Reference
+import dev.ohs.fhir.model.r4.String as FhirString
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.serialization.json.Json

@@ -21,14 +21,14 @@ import dev.ohs.fhir.db.Database
 import dev.ohs.fhir.db.ResourceNotFoundException
 import dev.ohs.fhir.index.ResourceIndexer
 import dev.ohs.fhir.index.SearchParamDefinitionsProviderImpl
-import com.google.fhir.model.r4.Enumeration
-import com.google.fhir.model.r4.FhirR4Json
-import com.google.fhir.model.r4.Observation
-import com.google.fhir.model.r4.Patient
-import com.google.fhir.model.r4.Reference
-import com.google.fhir.model.r4.String as FhirString
-import com.google.fhir.model.r4.terminologies.AdministrativeGender
-import com.google.fhir.model.r4.terminologies.ResourceType
+import dev.ohs.fhir.model.r4.Enumeration
+import dev.ohs.fhir.model.r4.FhirR4Json
+import dev.ohs.fhir.model.r4.Observation
+import dev.ohs.fhir.model.r4.Patient
+import dev.ohs.fhir.model.r4.Reference
+import dev.ohs.fhir.model.r4.String as FhirString
+import dev.ohs.fhir.model.r4.terminologies.AdministrativeGender
+import dev.ohs.fhir.model.r4.terminologies.ResourceType
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -199,7 +199,7 @@ class DatabaseImplTest {
       Observation(
         id = "obs-ref",
         status = Enumeration(value = Observation.ObservationStatus.Final),
-        code = com.google.fhir.model.r4.CodeableConcept(),
+        code = dev.ohs.fhir.model.r4.CodeableConcept(),
         subject = Reference(reference = FhirString(value = "Patient/$TEST_PATIENT_1_ID")),
       )
     database.insert(observation)

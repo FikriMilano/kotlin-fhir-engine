@@ -23,10 +23,10 @@ import dev.ohs.fhir.db.ResourceNotFoundException
 import dev.ohs.fhir.get
 import dev.ohs.fhir.search.count
 import dev.ohs.fhir.search.search
-import com.google.fhir.model.r4.HumanName
-import com.google.fhir.model.r4.Patient
-import com.google.fhir.model.r4.String as FhirString
-import com.google.fhir.model.r4.terminologies.ResourceType
+import dev.ohs.fhir.model.r4.HumanName
+import dev.ohs.fhir.model.r4.Patient
+import dev.ohs.fhir.model.r4.String as FhirString
+import dev.ohs.fhir.model.r4.terminologies.ResourceType
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -109,8 +109,8 @@ class FhirEngineImplTest {
         name =
           listOf(
             HumanName(
-              family = com.google.fhir.model.r4.String(value = "FamilyName"),
-              given = listOf(com.google.fhir.model.r4.String(value = "GivenName")),
+              family = dev.ohs.fhir.model.r4.String(value = "FamilyName"),
+              given = listOf(dev.ohs.fhir.model.r4.String(value = "GivenName")),
             ),
           ),
       )
@@ -143,7 +143,7 @@ class FhirEngineImplTest {
         id = "test-update-patient-001",
         name =
           listOf(
-            HumanName(family = com.google.fhir.model.r4.String(value = "UpdatedFamily1")),
+            HumanName(family = dev.ohs.fhir.model.r4.String(value = "UpdatedFamily1")),
           ),
       )
     val updatedPatient2 =
@@ -151,7 +151,7 @@ class FhirEngineImplTest {
         id = "test-update-patient-002",
         name =
           listOf(
-            HumanName(family = com.google.fhir.model.r4.String(value = "UpdatedFamily2")),
+            HumanName(family = dev.ohs.fhir.model.r4.String(value = "UpdatedFamily2")),
           ),
       )
 

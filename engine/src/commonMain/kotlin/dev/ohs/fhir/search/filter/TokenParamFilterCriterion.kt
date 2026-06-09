@@ -20,12 +20,12 @@ import dev.ohs.fhir.search.ConditionParam
 import dev.ohs.fhir.search.Operation
 import dev.ohs.fhir.search.SearchDslMarker
 import dev.ohs.fhir.search.TokenClientParam
-import com.google.fhir.model.r4.Code
-import com.google.fhir.model.r4.CodeableConcept
-import com.google.fhir.model.r4.Coding
-import com.google.fhir.model.r4.ContactPoint
-import com.google.fhir.model.r4.Identifier
-import com.google.fhir.model.r4.Uri
+import dev.ohs.fhir.model.r4.Code
+import dev.ohs.fhir.model.r4.CodeableConcept
+import dev.ohs.fhir.model.r4.Coding
+import dev.ohs.fhir.model.r4.ContactPoint
+import dev.ohs.fhir.model.r4.Identifier
+import dev.ohs.fhir.model.r4.Uri
 
 /**
  * Represents a criterion for filtering [TokenClientParam]. e.g. filter(Patient.GENDER, { value =

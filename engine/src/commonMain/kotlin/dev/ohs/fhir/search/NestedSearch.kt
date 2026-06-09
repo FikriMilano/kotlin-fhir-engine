@@ -17,8 +17,8 @@
 package dev.ohs.fhir.search
 
 import dev.ohs.fhir.getResourceType
-import com.google.fhir.model.r4.Resource
-import com.google.fhir.model.r4.terminologies.ResourceType
+import dev.ohs.fhir.model.r4.Resource
+import dev.ohs.fhir.model.r4.terminologies.ResourceType
 
 /** Lets users perform a nested search using [Search.has] api. */
 @PublishedApi internal data class NestedSearch(val param: ReferenceClientParam, val search: Search)

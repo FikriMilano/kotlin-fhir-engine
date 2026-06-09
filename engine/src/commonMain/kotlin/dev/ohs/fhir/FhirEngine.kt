@@ -23,8 +23,8 @@ import dev.ohs.fhir.sync.ConflictResolver
 import dev.ohs.fhir.sync.upload.SyncUploadProgress
 import dev.ohs.fhir.sync.upload.UploadRequestResult
 import dev.ohs.fhir.sync.upload.UploadStrategy
-import com.google.fhir.model.r4.Resource
-import com.google.fhir.model.r4.terminologies.ResourceType
+import dev.ohs.fhir.model.r4.Resource
+import dev.ohs.fhir.model.r4.terminologies.ResourceType
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.Flow
 
