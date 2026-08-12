@@ -32,6 +32,7 @@ import dev.ohs.fhir.engine.search.LOCAL_LAST_UPDATED
 import dev.ohs.fhir.engine.toEqualCanonical
 import dev.ohs.fhir.engine.ucumUrl
 import dev.ohs.fhir.fhirpath.FhirPathEngine
+import dev.ohs.fhir.fhirpath.forR4
 import dev.ohs.fhir.fhirpath.types.FhirPathDate
 import dev.ohs.fhir.fhirpath.types.FhirPathDateTime
 import dev.ohs.fhir.model.r4.Address
@@ -278,7 +279,7 @@ internal class ResourceIndexer(
                 dt.day!!,
                 dt.hour!!,
                 dt.minute!!,
-                dt.second!!.toInt(),
+                dt.second!!.intValue(exactRequired = true),
               )
               .toInstant(offset)
               .toEpochMilliseconds()

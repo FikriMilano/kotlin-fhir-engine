@@ -207,7 +207,9 @@ class ResourceIndexerTest {
           listOf(
             RiskAssessment.Prediction(
               probability =
-                RiskAssessment.Prediction.Probability.Decimal(FhirDecimal(value = decimalValue)),
+                RiskAssessment.Prediction.Probability.Decimal(
+                  FhirDecimal(value = decimalValue),
+                ),
             ),
           ),
       )
@@ -728,7 +730,10 @@ class ResourceIndexerTest {
         instance =
           listOf(
             Substance.Instance(
-              quantity = Quantity(value = FhirDecimal(value = BigDecimal.fromInt(100))),
+              quantity =
+                Quantity(
+                  value = FhirDecimal(value = BigDecimal.fromInt(100)),
+                ),
             ),
           ),
       )
@@ -1153,10 +1158,16 @@ class ResourceIndexerTest {
                 ),
             ),
             Substance.Instance(
-              quantity = Quantity(value = FhirDecimal(value = BigDecimal.fromInt(200))),
+              quantity =
+                Quantity(
+                  value = FhirDecimal(value = BigDecimal.fromInt(200)),
+                ),
             ),
             Substance.Instance(
-              quantity = Quantity(value = FhirDecimal(value = BigDecimal.fromInt(300))),
+              quantity =
+                Quantity(
+                  value = FhirDecimal(value = BigDecimal.fromInt(300)),
+                ),
             ),
           ),
       )
