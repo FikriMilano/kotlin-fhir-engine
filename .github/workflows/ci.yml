@@ -84,6 +84,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Add swap space
+        if: runner.os == 'Linux'
+        run: |
+          sudo swapoff -a || true
+          sudo rm -f /mnt/swapfile
+          sudo dd if=/dev/zero of=/mnt/swapfile bs=1M count=8192
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -106,7 +116,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Run tests
-        run: ./gradlew ${{ matrix.target }}
+        run: ./gradlew ${{ matrix.target }} "-Pkotlin.daemon.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g"
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4
