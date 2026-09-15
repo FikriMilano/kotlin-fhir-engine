@@ -137,20 +137,26 @@ Set `enableEncryption = true` to store the database encrypted with
 - **Android.** Works out of the box. The passphrase is derived from a key in the Android Keystore,
   the same way the android-fhir engine does it. Opening an encrypted android-fhir database is not
   yet verified.
-- **iOS, desktop and web.** Not supported yet. `FhirEngineProvider.init` throws
+- **iOS.** Add the [SQLCipher.swift](https://github.com/sqlcipher/SQLCipher.swift) package to the
+  app target in place of `libsqlite3.tbd`. Build the Kotlin framework as static, so the app's link
+  decides which SQLite the engine calls. The key is 32 random bytes kept in the Keychain, which
+  only works in a signed build. If the app links the system SQLite instead, the first database call
+  fails with a message saying SQLCipher is not linked.
+- **Desktop and web.** Not supported. `FhirEngineProvider.init` throws
   `UnsupportedOperationException` rather than silently storing plaintext.
 
 Opening a stored database with the other setting throws `IllegalStateException`. If the key is
 lost, the first database call throws `SQLiteException`, or, with
 `DatabaseErrorStrategy.RECREATE_AT_OPEN`, the database is deleted and created again empty.
 
-If the Keystore cannot provide the key, the first database call throws `DatabaseEncryptionException`.
-An `errorCode` of `TIMEOUT` means it stayed busy through the engine's retries, so a later call can
-succeed. `UNSUPPORTED` and `UNKNOWN` will not clear on their own.
+If the Keystore or Keychain cannot provide the key, the first database call throws
+`DatabaseEncryptionException`. An `errorCode` of `TIMEOUT` means the key store stayed busy or
+locked through the engine's retries, so a later call can succeed. `UNSUPPORTED` and `UNKNOWN` will
+not clear on their own.
 
-The key never leaves the device, so a backup restored to another device cannot be read. Exclude
-`resources_encrypted.db` from your app's backup rules so a restored app starts empty. Local changes
-not uploaded before the restore are lost either way.
+The key never leaves the device, so a backup restored to another device cannot be read. On Android,
+exclude `resources_encrypted.db` from your app's backup rules so a restored app starts empty. On iOS
+the engine already excludes it. Local changes not uploaded before the restore are lost either way.
 
 An emptied database does not refill on the next sync. Your `DownloadWorkManager` asks only for
 resources changed since the timestamps it keeps, so reset them when the database starts empty, and
@@ -309,9 +315,11 @@ Persistence uses [Room](https://developer.android.com/kotlin/multiplatform/room)
 requires **Room 3** (`androidx.room3`), Room 2 has no Wasm target, which is why the engine uses
 `androidx.room3.*` on all platforms.
 
-Android, iOS, and Desktop use the bundled native SQLite driver (`BundledSQLiteDriver` from
+Android and Desktop use the bundled native SQLite driver (`BundledSQLiteDriver` from
 `sqlite-bundled`), which has no Wasm build. Android switches to SQLCipher's driver when the database
-is encrypted. See [Encryption](#encryption). On Wasm the database instead uses `WebWorkerSQLiteDriver`,
+is encrypted. iOS uses `NativeSQLiteDriver` from `sqlite-framework`, which calls whatever SQLite the
+app links, the system `libsqlite3.tbd` or SQLCipher. See [Encryption](#encryption). On Wasm the
+database instead uses `WebWorkerSQLiteDriver`,
 backed by a SQLite-WASM Web Worker running in an
 [OPFS](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system)-persisted
 Web Worker (`engine/src/webMain/npm/sqlite-wasm-worker/worker.js`, npm dependency
