@@ -137,7 +137,13 @@ Set `enableEncryptionIfSupported = true` to store the database encrypted with
 - **Android.** Works out of the box. The passphrase is derived from a key in the Android Keystore,
   the same way the android-fhir engine does it, so an encrypted android-fhir database opens with its
   data.
-- **iOS, desktop and web.** Not supported yet. `FhirEngineProvider.init` throws
+- **iOS.** The engine links no SQLite of its own, it uses the one the app links. Add the
+  [SQLCipher.swift](https://github.com/sqlcipher/SQLCipher.swift) package to the app target instead
+  of `libsqlite3.tbd`. The app's Kotlin framework must be static so the app's link decides which
+  SQLite the engine calls. The key is 32 random bytes kept in the Keychain. If the app links the
+  system SQLite with encryption on, the first database access fails with a message saying SQLCipher
+  is not linked.
+- **Desktop and web.** Not supported. `FhirEngineProvider.init` throws
   `UnsupportedOperationException` rather than silently storing plaintext.
 
 Opening a stored database with the other setting throws `IllegalStateException`. Web cannot make
@@ -149,7 +155,8 @@ empty.
 
 The key stays on the device it was created on. A backup restored to another device brings no key
 with it, so the app starts with an empty database there and syncs again. Local changes that were
-not uploaded before the restore are lost.
+not uploaded before the restore are lost. On iOS the encrypted file is excluded from backups for
+that reason. The Keychain also refuses unsigned binaries, so run a signed build.
 
 ### Synchronizing with a FHIR server
 
@@ -304,9 +311,11 @@ Persistence uses [Room](https://developer.android.com/kotlin/multiplatform/room)
 requires **Room 3** (`androidx.room3`), Room 2 has no Wasm target, which is why the engine uses
 `androidx.room3.*` on all platforms.
 
-Android, iOS, and Desktop use the bundled native SQLite driver (`BundledSQLiteDriver` from
+Android and Desktop use the bundled native SQLite driver (`BundledSQLiteDriver` from
 `sqlite-bundled`), which has no Wasm build. Android switches to SQLCipher's driver when the database
-is encrypted. See [Encryption](#encryption). On Wasm the database instead uses `WebWorkerSQLiteDriver`,
+is encrypted. iOS uses `NativeSQLiteDriver` from `sqlite-framework`, which calls whatever SQLite the
+app links, the system `libsqlite3.tbd` or SQLCipher. See [Encryption](#encryption). On Wasm the
+database instead uses `WebWorkerSQLiteDriver`,
 backed by a SQLite-WASM Web Worker running in an
 [OPFS](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system)-persisted
 Web Worker (`engine/src/webMain/npm/sqlite-wasm-worker/worker.js`, npm dependency
