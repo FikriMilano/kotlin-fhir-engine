@@ -15,4 +15,43 @@
  */
 package dev.ohs.fhir.engine.db.impl
 
-internal actual val encryptionTestSupport: EncryptionTestSupport? = null
+import androidx.sqlite.SQLiteException
+import kotlin.reflect.KClass
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.usePinned
+import platform.Foundation.NSData
+import platform.Foundation.NSFileManager
+import platform.Foundation.dataWithContentsOfFile
+import platform.posix.memcpy
+
+@OptIn(ExperimentalForeignApi::class)
+internal actual val encryptionTestSupport: EncryptionTestSupport? =
+  object : EncryptionTestSupport {
+    override fun deleteDatabaseFiles() {
+      for (encrypted in listOf(false, true)) {
+        NSFileManager.defaultManager.removeItemAtPath(
+          databaseFileName(Unit, null, encrypted),
+          error = null,
+        )
+      }
+    }
+
+    override fun readDatabaseHeader(encrypted: Boolean): ByteArray {
+      val data = NSData.dataWithContentsOfFile(databaseFileName(Unit, null, encrypted))!!
+      return ByteArray(16).also { bytes ->
+        bytes.usePinned { memcpy(it.addressOf(0), data.bytes, 16u) }
+      }
+    }
+
+    // The simulator test process has no Keychain, so the key is fixed here.
+    override fun resetDatabaseKey() = useKey(1)
+
+    override fun loseDatabaseKey() = useKey(2)
+
+    private fun useKey(seed: Byte) {
+      DatabaseEncryptionKeyProvider.keySourceForTesting = { ByteArray(32) { seed } }
+    }
+
+    override val keyMismatchException: KClass<out Throwable> = SQLiteException::class
+  }
