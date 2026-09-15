@@ -15,4 +15,36 @@
  */
 package dev.ohs.fhir.engine.db.impl
 
-internal actual val encryptionTestSupport: EncryptionTestSupport? = null
+import android.content.Context
+import android.database.sqlite.SQLiteException
+import androidx.test.core.app.ApplicationProvider
+import java.io.File
+import java.security.KeyStore
+import kotlin.reflect.KClass
+
+internal actual val encryptionTestSupport: EncryptionTestSupport? =
+  object : EncryptionTestSupport {
+    private val context: Context = ApplicationProvider.getApplicationContext()
+
+    override fun deleteDatabaseFiles() {
+      for (encrypted in listOf(false, true)) {
+        File(databaseFileName(context, null, encrypted)).delete()
+      }
+    }
+
+    override fun readDatabaseHeader(encrypted: Boolean): ByteArray =
+      File(databaseFileName(context, null, encrypted)).inputStream().use { stream ->
+        ByteArray(16).also { stream.read(it) }
+      }
+
+    override fun resetDatabaseKey() = loseDatabaseKey()
+
+    override fun loseDatabaseKey() {
+      val keyStore = KeyStore.getInstance(DatabaseEncryptionKeyProvider.ANDROID_KEYSTORE_NAME)
+      keyStore.load(null)
+      keyStore.deleteEntry(DATABASE_PASSPHRASE_NAME)
+      DatabaseEncryptionKeyProvider.clearKeyCache()
+    }
+
+    override val keyMismatchException: KClass<out Throwable> = SQLiteException::class
+  }

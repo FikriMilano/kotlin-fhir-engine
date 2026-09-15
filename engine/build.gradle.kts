@@ -94,6 +94,7 @@ kotlin {
     val androidMain by getting {
       dependencies {
         implementation(libs.androidx.sqlite.bundled)
+        implementation(libs.sqlcipher.android)
         implementation(libs.androidx.work.runtime)
         implementation(libs.androidx.lifecycle.livedata)
         implementation(libs.ktor.client.okhttp)
