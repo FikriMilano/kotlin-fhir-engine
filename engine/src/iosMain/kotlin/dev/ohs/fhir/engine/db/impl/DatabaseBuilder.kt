@@ -17,14 +17,20 @@ package dev.ohs.fhir.engine.db.impl
 
 import androidx.room3.Room
 import androidx.room3.RoomDatabase
+import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteDriver
-import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import androidx.sqlite.SQLiteException
+import androidx.sqlite.driver.NativeSQLiteDriver
+import androidx.sqlite.execSQL
+import dev.ohs.fhir.engine.DatabaseErrorStrategy
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import platform.Foundation.NSApplicationSupportDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
+import platform.Foundation.NSURL
+import platform.Foundation.NSURLIsExcludedFromBackupKey
 import platform.Foundation.NSUserDomainMask
 
 internal actual fun getDatabaseBuilder(
@@ -44,9 +50,66 @@ internal actual fun getDatabaseBuilder(
   return builder.setDriver(databaseDriver(config)).setQueryCoroutineContext(Dispatchers.IO)
 }
 
-internal actual val isDatabaseEncryptionSupported: Boolean = false
+internal actual val isDatabaseEncryptionSupported: Boolean = true
 
-internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver = BundledSQLiteDriver()
+internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver =
+  if (config.encrypt) EncryptedDatabaseDriver(config.errorStrategy) else NativeSQLiteDriver()
+
+/**
+ * Keys every connection with the Keychain key. The engine does not ship SQLCipher, the app links it
+ * in place of the system SQLite, so the first open checks that it actually did.
+ */
+private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorStrategy) :
+  SQLiteDriver {
+  private val driver = NativeSQLiteDriver()
+
+  // Read once here, on the constructing thread, since Room opens pooled connections concurrently.
+  private val key = DatabaseEncryptionKeyProvider.getOrCreateKey()
+
+  override fun open(fileName: String): SQLiteConnection =
+    try {
+      openKeyed(fileName)
+    } catch (exception: SQLiteException) {
+      // A database the current key cannot read is unrecoverable, so the caller may ask for a new
+      // one.
+      if (errorStrategy != DatabaseErrorStrategy.RECREATE_AT_OPEN) throw exception
+      deleteDatabaseFiles(fileName)
+      openKeyed(fileName)
+    }
+
+  private fun openKeyed(fileName: String): SQLiteConnection {
+    val connection = driver.open(fileName)
+    try {
+      connection.execSQL("PRAGMA key = \"x'${key.toHexString()}'\"")
+      check(
+        connection.prepare("PRAGMA cipher_version").use { it.step() && it.getText(0).isNotEmpty() },
+      ) {
+        "SQLCipher is not linked into the app, so the database cannot be encrypted."
+      }
+      // Reads the header, which fails when the key does not match the file.
+      connection.prepare("SELECT count(*) FROM sqlite_master").use { it.step() }
+    } catch (exception: Throwable) {
+      connection.close()
+      throw exception
+    }
+    excludeFromBackup(fileName)
+    return connection
+  }
+
+  // The key never leaves this device, so a restored copy of the file could not be read anyway.
+  @OptIn(ExperimentalForeignApi::class)
+  private fun excludeFromBackup(fileName: String) {
+    NSURL.fileURLWithPath(fileName)
+      .setResourceValue(true, forKey = NSURLIsExcludedFromBackupKey, error = null)
+  }
+
+  @OptIn(ExperimentalForeignApi::class)
+  private fun deleteDatabaseFiles(fileName: String) {
+    for (suffix in listOf("", "-wal", "-shm", "-journal")) {
+      NSFileManager.defaultManager.removeItemAtPath(fileName + suffix, error = null)
+    }
+  }
+}
 
 internal actual fun databaseFileName(
   platformContext: Any,
