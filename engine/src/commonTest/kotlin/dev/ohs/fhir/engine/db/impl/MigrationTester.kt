@@ -29,7 +29,7 @@ import kotlin.test.assertEquals
  * exported target schema. Room's own helper does not exist for web and reads files on iOS.
  */
 internal class MigrationTester(platformContext: Any, storageDirectory: String?) {
-  private val driver = databaseDriver()
+  private val driver = databaseDriver(DatabaseConfig())
   private val fileName = databaseFileName(platformContext, storageDirectory)
 
   init {
