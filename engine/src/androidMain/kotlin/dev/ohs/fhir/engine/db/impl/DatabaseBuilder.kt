@@ -20,30 +20,43 @@ import androidx.room3.Room
 import androidx.room3.RoomDatabase
 import androidx.sqlite.SQLiteDriver
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 
 internal actual fun getDatabaseBuilder(
   platformContext: Any,
   storageDirectory: String?,
-  inMemory: Boolean,
+  config: DatabaseConfig,
 ): RoomDatabase.Builder<ResourceDatabase> {
   val builder =
-    if (inMemory) {
+    if (config.inMemory) {
       Room.inMemoryDatabaseBuilder<ResourceDatabase>()
     } else {
       Room.databaseBuilder<ResourceDatabase>(
         platformContext as Context,
-        databaseFileName(platformContext, storageDirectory),
+        databaseFileName(platformContext, storageDirectory, config.encrypt),
       )
     }
-  return builder.setDriver(databaseDriver()).setQueryCoroutineContext(Dispatchers.IO)
+  return builder.setDriver(databaseDriver(config)).setQueryCoroutineContext(Dispatchers.IO)
 }
 
-internal actual fun databaseDriver(): SQLiteDriver = BundledSQLiteDriver()
+internal actual val isDatabaseEncryptionSupported: Boolean = false
 
-internal actual fun databaseFileName(platformContext: Any, storageDirectory: String?): String =
-  (platformContext as Context).getDatabasePath(DATABASE_NAME).absolutePath
+internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver = BundledSQLiteDriver()
+
+internal actual fun databaseFileName(
+  platformContext: Any,
+  storageDirectory: String?,
+  encrypted: Boolean,
+): String =
+  (platformContext as Context)
+    .getDatabasePath(if (encrypted) ENCRYPTED_DATABASE_NAME else DATABASE_NAME)
+    .absolutePath
+
+internal actual fun databaseFileExists(
+  platformContext: Any,
+  storageDirectory: String?,
+  encrypted: Boolean,
+): Boolean = File(databaseFileName(platformContext, storageDirectory, encrypted)).exists()
 
 internal actual fun createDatabaseDirectory(platformContext: Any, storageDirectory: String?) {}
-
-private const val DATABASE_NAME = "resources.db"

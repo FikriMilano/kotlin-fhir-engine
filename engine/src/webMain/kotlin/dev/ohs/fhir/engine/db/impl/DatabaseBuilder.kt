@@ -34,22 +34,36 @@ import dev.ohs.fhir.engine.wasm.worker.createSqliteWasmDriver
 internal actual fun getDatabaseBuilder(
   platformContext: Any,
   storageDirectory: String?,
-  inMemory: Boolean,
+  config: DatabaseConfig,
 ): RoomDatabase.Builder<ResourceDatabase> {
   val builder =
-    if (inMemory) {
+    if (config.inMemory) {
       Room.inMemoryDatabaseBuilder<ResourceDatabase>()
     } else {
-      Room.databaseBuilder<ResourceDatabase>(databaseFileName(platformContext, storageDirectory))
+      Room.databaseBuilder<ResourceDatabase>(
+        databaseFileName(platformContext, storageDirectory, config.encrypt),
+      )
     }
-  return builder.setDriver(databaseDriver())
+  return builder.setDriver(databaseDriver(config))
 }
 
-internal actual fun databaseDriver(): SQLiteDriver = createSqliteWasmDriver()
+internal actual val isDatabaseEncryptionSupported: Boolean = false
 
-internal actual fun databaseFileName(platformContext: Any, storageDirectory: String?): String =
-  storageDirectory?.let { "$it-$DATABASE_NAME" } ?: DATABASE_NAME
+internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver {
+  require(!config.encrypt) { "Database encryption is not supported on web." }
+  return createSqliteWasmDriver()
+}
+
+internal actual fun databaseFileName(
+  platformContext: Any,
+  storageDirectory: String?,
+  encrypted: Boolean,
+): String = storageDirectory?.let { "$it-$DATABASE_NAME" } ?: DATABASE_NAME
+
+internal actual fun databaseFileExists(
+  platformContext: Any,
+  storageDirectory: String?,
+  encrypted: Boolean,
+): Boolean = false
 
 internal actual fun createDatabaseDirectory(platformContext: Any, storageDirectory: String?) {}
-
-private const val DATABASE_NAME = "resources.db"
