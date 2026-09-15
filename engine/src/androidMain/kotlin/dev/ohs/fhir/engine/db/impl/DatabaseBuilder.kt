@@ -16,12 +16,18 @@
 package dev.ohs.fhir.engine.db.impl
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase as AndroidSQLiteDatabase
+import android.database.sqlite.SQLiteException
 import androidx.room3.Room
 import androidx.room3.RoomDatabase
+import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteDriver
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import dev.ohs.fhir.engine.DatabaseErrorStrategy
+import dev.ohs.fhir.engine.db.DatabaseEncryptionException
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import net.zetetic.database.sqlcipher.driver.SQLCipherDriver
 
 internal actual fun getDatabaseBuilder(
   platformContext: Any,
@@ -40,9 +46,59 @@ internal actual fun getDatabaseBuilder(
   return builder.setDriver(databaseDriver(config)).setQueryCoroutineContext(Dispatchers.IO)
 }
 
-internal actual val isDatabaseEncryptionSupported: Boolean = false
+internal actual val isDatabaseEncryptionSupported: Boolean = true
 
-internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver = BundledSQLiteDriver()
+internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver =
+  if (config.encrypt) EncryptedDatabaseDriver(config.errorStrategy) else BundledSQLiteDriver()
+
+/**
+ * Opens the database through SQLCipher with the Keystore derived passphrase. The passphrase is
+ * fetched on open, which Room runs off the main thread, so Keystore delays and retries stay there.
+ */
+private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorStrategy) :
+  SQLiteDriver {
+  init {
+    System.loadLibrary("sqlcipher")
+  }
+
+  override fun open(fileName: String): SQLiteConnection {
+    val driver = SQLCipherDriver(passphraseWithRetry(), null, null)
+    return try {
+      driver.open(fileName)
+    } catch (exception: SQLiteException) {
+      // A database the current key cannot read is unrecoverable, so the caller may ask for a new
+      // one.
+      if (errorStrategy != DatabaseErrorStrategy.RECREATE_AT_OPEN) throw exception
+      AndroidSQLiteDatabase.deleteDatabase(File(fileName))
+      driver.open(fileName)
+    }
+  }
+
+  override val hasConnectionPool: Boolean
+    get() = true
+
+  // The last attempt throws whatever the Keystore reports.
+  private fun passphraseWithRetry(): ByteArray {
+    repeat(MAX_RETRY_ATTEMPTS - 1) { attempt ->
+      try {
+        return DatabaseEncryptionKeyProvider.getOrCreatePassphrase(DATABASE_PASSPHRASE_NAME)
+      } catch (exception: DatabaseEncryptionException) {
+        if (
+          exception.errorCode != DatabaseEncryptionException.DatabaseEncryptionErrorCode.TIMEOUT
+        ) {
+          throw exception
+        }
+        Thread.sleep(RETRY_DELAY_MILLIS * (attempt + 1))
+      }
+    }
+    return DatabaseEncryptionKeyProvider.getOrCreatePassphrase(DATABASE_PASSPHRASE_NAME)
+  }
+
+  private companion object {
+    const val MAX_RETRY_ATTEMPTS = 3
+    const val RETRY_DELAY_MILLIS = 1000L
+  }
+}
 
 internal actual fun databaseFileName(
   platformContext: Any,
