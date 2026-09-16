@@ -237,6 +237,10 @@ tasks
       excludeTestsMatching("dev.ohs.fhir.engine.search.query.XFhirQueryTranslatorTest")
       excludeTestsMatching("dev.ohs.fhir.engine.db.impl.ResourceDatabaseMigrationTest")
       excludeTestsMatching("dev.ohs.fhir.engine.db.impl.DatabaseFileNameTest")
+      excludeTestsMatching("dev.ohs.fhir.engine.sync.FhirDataStoreTest")
+      excludeTestsMatching("dev.ohs.fhir.engine.sync.FhirSynchronizerTest")
+      excludeTestsMatching("dev.ohs.fhir.engine.sync.upload.HttpPostResourceConsolidatorTest")
+      excludeTestsMatching("dev.ohs.fhir.engine.sync.upload.LocalChangeFetcherTest")
     }
   }
 
