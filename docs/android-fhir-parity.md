@@ -47,7 +47,8 @@ keeps the original's shape for source compatibility but not every knob is functi
 Same schema and file name as android-fhir, one version higher, with all of android-fhir's
 migrations. An app that switches from android-fhir keeps its data. ✅
 
-Databases from this library's releases 2.0.0-alpha01, alpha02 and alpha03 fail to open. They reused
-android-fhir's version 2 with a different layout. Clear the app's data. ⚠️
+Databases from this library's releases 2.0.0-alpha01, alpha02 and alpha03 are converted in place
+and keep their data. They reused android-fhir's version 2 with a different layout, so they are told
+apart by that layout and converted instead of migrated. ✅
 
 Encrypted android-fhir databases are not opened yet. ❌

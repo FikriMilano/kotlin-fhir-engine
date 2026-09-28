@@ -235,12 +235,22 @@ internal abstract class ResourceDatabase : RoomDatabase() {
       )
 
     /**
-     * Room takes the longest registered jump, so every version 2 database comes here rather than
-     * being handed the steps one at a time. Ending at [VERSION] keeps this current when the schema
-     * moves on.
+     * Room takes the longest registered jump, so every version 2 database comes here. A file from
+     * an alpha release is converted to the version its layout already matched, any other one is the
+     * android-fhir engine's version 2, and both then run the steps they have left. Ending at
+     * [VERSION] keeps this current when the schema moves on.
      */
     val MIGRATION_FROM_2 =
-      Migration(2, VERSION) { c -> STEPS.filter { it.startVersion >= 2 }.forEach { it.migrate(c) } }
+      Migration(2, VERSION) { c ->
+        val from =
+          if (AlphaDatabaseConverter.isAlphaDatabase(c)) {
+            AlphaDatabaseConverter.convert(c)
+            Schema11.VERSION
+          } else {
+            2
+          }
+        STEPS.filter { it.startVersion >= from }.forEach { it.migrate(c) }
+      }
 
     /** Everything the database registers with Room. Declared last, it reads the two above. */
     val MIGRATIONS = STEPS + MIGRATION_FROM_2

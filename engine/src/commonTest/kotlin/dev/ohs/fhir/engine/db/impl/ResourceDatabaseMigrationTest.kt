@@ -216,6 +216,119 @@ class ResourceDatabaseMigrationTest {
   }
 
   @Test
+  fun alphaDatabase_isConvertedAndKeepsItsRows() = runTest {
+    // Alpha01 to alpha03 stamped version 2 on the version 11 layout with resourceUuid as TEXT.
+    val alphaSchema =
+      ExportedSchemas.ddl(Schema11.VERSION).map {
+        it.replace("`resourceUuid` BLOB", "`resourceUuid` TEXT")
+      }
+    tester.createDatabase(2, alphaSchema).use { it.insertAlphaRows() }
+    val database =
+      DatabaseImpl(
+        platformContext,
+        ResourceIndexer(SearchParamDefinitionsProviderImpl()),
+        storageDirectory,
+      )
+    try {
+      assertEquals(
+        PATIENT_UUID,
+        database.selectEntity(ResourceType.Patient, PATIENT_ID).resourceUuid,
+      )
+      assertEquals(PATIENT_ID, database.select(ResourceType.Patient, PATIENT_ID).id)
+      assertEquals(
+        PATIENT_JSON,
+        database.getLocalChanges(ResourceType.Patient, PATIENT_ID).single().payload,
+      )
+    } finally {
+      database.close()
+    }
+    tester.openConnection().use { c ->
+      assertEquals(listOf(ResourceDatabase.VERSION.toLong()), c.longs("PRAGMA user_version"))
+      for (table in Schema11.tables.filter { it.hasColumn("resourceUuid") }) {
+        assertEquals(
+          "blob",
+          c.single("SELECT typeof(resourceUuid) FROM `${table.name}`"),
+          table.name,
+        )
+      }
+      assertEquals("Jones", c.single("SELECT index_value FROM StringIndexEntity"))
+      assertEquals(listOf(1L), c.longs("SELECT COUNT(*) FROM LocalChangeResourceReferenceEntity"))
+      assertEquals(emptyList(), c.longs("PRAGMA foreign_key_check"))
+    }
+  }
+
+  /**
+   * One row in every table that has a uuid column, with the uuid as text. Nullable columns are left
+   * null so the copy handles both storage classes.
+   */
+  private suspend fun SQLiteConnection.insertAlphaRows() {
+    val uuid = PATIENT_UUID.toString()
+    insert(
+      "ResourceEntity",
+      "resourceUuid, resourceType, resourceId, serializedResource, lastUpdatedLocal",
+      "'$uuid', 'Patient', '$PATIENT_ID', '$PATIENT_JSON', 1700000000000",
+    )
+    insert(
+      "StringIndexEntity",
+      "resourceUuid, resourceType, index_name, index_path, index_value",
+      "'$uuid', 'Patient', 'family', 'Patient.name.family', 'Jones'",
+    )
+    insert(
+      "ReferenceIndexEntity",
+      "resourceUuid, resourceType, index_name, index_path, index_value",
+      "'$uuid', 'Patient', 'organization', 'Patient.managingOrganization', 'Organization/1'",
+    )
+    insert(
+      "TokenIndexEntity",
+      "resourceUuid, resourceType, index_name, index_path, index_system, index_value",
+      "'$uuid', 'Patient', 'gender', 'Patient.gender', NULL, 'male'",
+    )
+    insert(
+      "QuantityIndexEntity",
+      "resourceUuid, resourceType, index_name, index_path, index_system, index_code, index_value",
+      "'$uuid', 'Patient', 'weight', 'Patient.extension', 'http://unitsofmeasure.org', 'kg', 70.5",
+    )
+    insert(
+      "UriIndexEntity",
+      "resourceUuid, resourceType, index_name, index_path, index_value",
+      "'$uuid', 'Patient', 'url', 'Patient.url', 'http://example.org'",
+    )
+    insert(
+      "DateIndexEntity",
+      "resourceUuid, resourceType, index_name, index_path, index_from, index_to",
+      "'$uuid', 'Patient', 'birthdate', 'Patient.birthDate', 19000, 19000",
+    )
+    insert(
+      "DateTimeIndexEntity",
+      "resourceUuid, resourceType, index_name, index_path, index_from, index_to",
+      "'$uuid', 'Patient', '_lastUpdated', 'Patient.meta.lastUpdated', 1700000000000, 1700000000000",
+    )
+    insert(
+      "NumberIndexEntity",
+      "resourceUuid, resourceType, index_name, index_path, index_value",
+      "'$uuid', 'Patient', 'age', 'Patient.extension', 42",
+    )
+    insert(
+      "PositionIndexEntity",
+      "resourceUuid, resourceType, index_latitude, index_longitude",
+      "'$uuid', 'Patient', 1.5, 2.5",
+    )
+    insert(
+      "LocalChangeEntity",
+      "id, resourceType, resourceId, resourceUuid, timestamp, type, payload, versionId",
+      "1, 'Patient', '$PATIENT_ID', '$uuid', 1700000000000, 1, '$PATIENT_JSON', NULL",
+    )
+    insert(
+      "LocalChangeResourceReferenceEntity",
+      "localChangeId, resourceReferenceValue, resourceReferencePath",
+      "1, 'Organization/1', 'managingOrganization'",
+    )
+  }
+
+  private suspend fun SQLiteConnection.insert(table: String, columns: String, values: String) =
+    executeSQL("INSERT INTO $table ($columns) VALUES ($values)")
+
+  @Test
   fun androidFhirDatabaseAtVersion2_goesThroughTheChain() = runTest {
     tester.createDatabase(2).use { it.insertPatient() }
     val database =
