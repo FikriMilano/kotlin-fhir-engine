@@ -46,4 +46,26 @@ class ExportedSchemasTest {
       assertEquals(expected, ExportedSchemas.ddl(version), "schema $version")
     }
   }
+
+  /** [Schema11] is frozen, so this stays on version 11 while the schema moves on. */
+  @Test
+  fun schema11ColumnsMatchTheExportedSchemaFile() {
+    val file =
+      File(
+        "schemas/dev.ohs.fhir.engine.db.impl.ResourceDatabase",
+        "${Schema11.VERSION}.json",
+      )
+    val expected =
+      Json.parseToJsonElement(file.readText())
+        .jsonObject["database"]!!
+        .jsonObject["entities"]!!
+        .jsonArray
+        .associate { entity ->
+          entity.jsonObject["tableName"]!!.jsonPrimitive.content to
+            entity.jsonObject["fields"]!!.jsonArray.map {
+              it.jsonObject["columnName"]!!.jsonPrimitive.content
+            }
+        }
+    assertEquals(expected, Schema11.tables.associate { it.name to it.columns })
+  }
 }
