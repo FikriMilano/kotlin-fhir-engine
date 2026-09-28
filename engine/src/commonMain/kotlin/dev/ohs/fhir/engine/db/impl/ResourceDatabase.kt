@@ -219,7 +219,8 @@ internal abstract class ResourceDatabase : RoomDatabase() {
     /** Schema 10 and 11 are identical, so this only lets Room record the new version. */
     val MIGRATION_10_11 = Migration(10, 11) {}
 
-    val MIGRATIONS =
+    /** One migration per version step, the android-fhir engine's nine and then this engine's. */
+    val STEPS =
       arrayOf(
         MIGRATION_1_2,
         MIGRATION_2_3,
@@ -232,6 +233,17 @@ internal abstract class ResourceDatabase : RoomDatabase() {
         MIGRATION_9_10,
         MIGRATION_10_11,
       )
+
+    /**
+     * Room takes the longest registered jump, so every version 2 database comes here rather than
+     * being handed the steps one at a time. Ending at [VERSION] keeps this current when the schema
+     * moves on.
+     */
+    val MIGRATION_FROM_2 =
+      Migration(2, VERSION) { c -> STEPS.filter { it.startVersion >= 2 }.forEach { it.migrate(c) } }
+
+    /** Everything the database registers with Room. Declared last, it reads the two above. */
+    val MIGRATIONS = STEPS + MIGRATION_FROM_2
   }
 }
 

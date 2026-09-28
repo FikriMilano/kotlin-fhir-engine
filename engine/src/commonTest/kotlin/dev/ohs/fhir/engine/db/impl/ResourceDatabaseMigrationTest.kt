@@ -19,8 +19,11 @@ import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.async.executeSQL
 import androidx.sqlite.async.prepare
 import androidx.sqlite.async.step
+import dev.ohs.fhir.engine.index.ResourceIndexer
+import dev.ohs.fhir.engine.index.SearchParamDefinitionsProviderImpl
 import dev.ohs.fhir.engine.testPlatformContext
 import dev.ohs.fhir.engine.testStorageDirectory
+import dev.ohs.fhir.model.r4.terminologies.ResourceType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -213,10 +216,38 @@ class ResourceDatabaseMigrationTest {
   }
 
   @Test
+  fun androidFhirDatabaseAtVersion2_goesThroughTheChain() = runTest {
+    tester.createDatabase(2).use { it.insertPatient() }
+    val database =
+      DatabaseImpl(
+        platformContext,
+        ResourceIndexer(SearchParamDefinitionsProviderImpl()),
+        storageDirectory,
+      )
+    try {
+      assertEquals(PATIENT_ID, database.select(ResourceType.Patient, PATIENT_ID).id)
+    } finally {
+      database.close()
+    }
+    tester.openConnection().use {
+      assertEquals(listOf(ResourceDatabase.VERSION.toLong()), it.longs("PRAGMA user_version"))
+    }
+  }
+
+  @Test
+  fun migrations_registerTheStepsAndTheJumpFromVersion2() {
+    assertEquals(
+      ResourceDatabase.STEPS.toList() + ResourceDatabase.MIGRATION_FROM_2,
+      ResourceDatabase.MIGRATIONS.toList(),
+    )
+    assertEquals(ResourceDatabase.VERSION, ResourceDatabase.MIGRATION_FROM_2.endVersion)
+  }
+
+  @Test
   fun migrationsCoverEveryVersion() {
     assertEquals(
       (1 until ResourceDatabase.VERSION).map { it to it + 1 },
-      ResourceDatabase.MIGRATIONS.map { it.startVersion to it.endVersion },
+      ResourceDatabase.STEPS.map { it.startVersion to it.endVersion },
     )
   }
 
