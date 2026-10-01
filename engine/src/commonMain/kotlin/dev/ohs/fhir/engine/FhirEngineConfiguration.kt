@@ -15,6 +15,7 @@
  */
 package dev.ohs.fhir.engine
 
+import androidx.sqlite.SQLiteDriver
 import dev.ohs.fhir.engine.index.SearchParamDefinition
 import dev.ohs.fhir.engine.sync.HttpAuthenticator
 import dev.ohs.fhir.engine.sync.remote.HttpLogger
@@ -25,7 +26,12 @@ import dev.ohs.fhir.engine.sync.remote.HttpLogger
  *
  * @property enableEncryptionIfSupported Encrypt the database on platforms that support it, Android
  *   and iOS. On other platforms [FhirEngineProvider.init] throws [UnsupportedOperationException]
- *   rather than storing data unencrypted.
+ *   rather than storing data unencrypted, unless [encryptedDatabaseDriver] is set.
+ * @property encryptedDatabaseDriver A SQLite driver that opens the database encrypted, for the
+ *   platforms where the engine ships none, desktop and web. On Android and iOS it replaces the
+ *   engine's own SQLCipher driver. Setting it without [enableEncryptionIfSupported] is rejected by
+ *   [FhirEngineProvider.init]. What the driver has to do is in the README, under bringing your own
+ *   encryption. Compares by identity.
  * @property databaseErrorStrategy The strategy to handle database errors. Defaults to
  *   [DatabaseErrorStrategy.UNSPECIFIED].
  * @property serverConfiguration Optional configuration for connecting to a remote FHIR server.
@@ -50,6 +56,7 @@ constructor(
   val testMode: Boolean = false,
   val customSearchParameters: List<SearchParamDefinition>? = null,
   val storageDirectory: String? = null,
+  val encryptedDatabaseDriver: SQLiteDriver? = null,
 )
 
 /** How database errors should be handled. */
@@ -65,6 +72,10 @@ enum class DatabaseErrorStrategy {
    *
    * This strategy is NOT respected when opening a previously unencrypted database with an encrypted
    * configuration or vice versa. An [IllegalStateException] is thrown instead.
+   *
+   * It is also not respected with a [FhirEngineConfiguration.encryptedDatabaseDriver]. The engine
+   * implements it inside the drivers it supplies, so a driver from the application has to recreate
+   * the database itself.
    */
   RECREATE_AT_OPEN,
 }

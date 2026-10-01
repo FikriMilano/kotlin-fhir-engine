@@ -43,10 +43,15 @@ internal actual fun getDatabaseBuilder(
 
 internal actual val isDatabaseEncryptionSupported: Boolean = false
 
-internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver {
-  require(!config.encrypt) { "Database encryption is not supported on desktop." }
-  return BundledSQLiteDriver()
-}
+internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver =
+  if (config.encrypt) {
+    // The engine bundles a plain SQLite build for desktop, so only the caller can encrypt.
+    requireNotNull(config.encryptedDatabaseDriver) {
+      "Database encryption on desktop needs FhirEngineConfiguration.encryptedDatabaseDriver."
+    }
+  } else {
+    BundledSQLiteDriver()
+  }
 
 internal actual fun databaseFileName(
   platformContext: Any,

@@ -48,7 +48,12 @@ internal actual fun getDatabaseBuilder(
 internal actual val isDatabaseEncryptionSupported: Boolean = true
 
 internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver =
-  if (config.encrypt) EncryptedDatabaseDriver(config.errorStrategy) else BundledSQLiteDriver()
+  when {
+    !config.encrypt -> BundledSQLiteDriver()
+    // A driver from the caller replaces the engine's Keystore passphrase and SQLCipher.
+    config.encryptedDatabaseDriver != null -> config.encryptedDatabaseDriver
+    else -> EncryptedDatabaseDriver(config.errorStrategy)
+  }
 
 /**
  * Opens the database through SQLCipher with the Keystore derived passphrase. The passphrase is

@@ -83,6 +83,16 @@ class FhirEngineProviderTest {
   }
 
   @Test
+  fun init_withADriverButWithoutEncryption_throwsRatherThanStoringPlaintext() {
+    assertFailsWith<IllegalArgumentException> {
+      FhirEngineProvider.init(
+        FhirEngineConfiguration(testMode = true, encryptedDatabaseDriver = unopenedDriver()),
+        testPlatformContext(),
+      )
+    }
+  }
+
+  @Test
   fun createFhirEngineConfiguration_withDefaultNetworkConfig_shouldHaveDefaultTimeout() {
     val config = FhirEngineConfiguration(serverConfiguration = ServerConfiguration(""))
     with(config.serverConfiguration!!.networkConfiguration) {

@@ -38,7 +38,7 @@ keeps the original's shape for source compatibility but not every knob is functi
 | `storageDirectory`                                         | ✅      | Desktop and web only. See [Platform support](conformance.md#platform-support).                                         |
 | `uploadWithGzip`                                           | ⚠️     | Works on Android and Desktop. Broken labeling on iOS and web. See [Platform support](conformance.md#platform-support). |
 | `httpCache`                                                | ⚠️     | Toggles Ktor's default in-memory cache. `CacheConfiguration.cacheDir` and `maxSize` are ignored.                       |
-| `enableEncryptionIfSupported`                              | ✅      | Android and iOS. Desktop and web throw at init. See [Platform support](conformance.md#platform-support).             |
+| `enableEncryptionIfSupported`                              | ✅      | Android and iOS encrypt with SQLCipher. Desktop and web need `encryptedDatabaseDriver` and throw at init without it. See [Platform support](conformance.md#platform-support). |
 | `databaseErrorStrategy`                                    | ✅      | `RECREATE_AT_OPEN` recreates an encrypted database the current key cannot open, as in android-fhir.                   |
 | `testMode`                                                 | ✅      | In-memory database on every platform.                                                                                  |
 

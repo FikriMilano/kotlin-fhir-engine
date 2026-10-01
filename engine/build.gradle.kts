@@ -131,6 +131,10 @@ kotlin {
         implementation(libs.kermit)
         implementation(libs.androidx.room3.runtime)
         implementation(libs.androidx.sqlite.async)
+        // Exported because FhirEngineConfiguration.encryptedDatabaseDriver is a SQLiteDriver,
+        // which a consumer cannot implement otherwise. That puts this artifact in the public
+        // surface, so a major version of it becomes a breaking change here.
+        api(libs.androidx.sqlite.core)
         api(libs.androidx.datastore.preferences.core)
         implementation(libs.ktor.client.core)
         implementation(libs.ktor.client.content.negotiation)

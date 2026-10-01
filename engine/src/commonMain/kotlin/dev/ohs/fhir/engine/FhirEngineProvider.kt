@@ -56,8 +56,22 @@ object FhirEngineProvider {
    * [IllegalStateException].
    */
   fun init(configuration: FhirEngineConfiguration, platformContext: Any = Unit) {
-    if (configuration.enableEncryptionIfSupported && !isDatabaseEncryptionSupported) {
-      throw UnsupportedOperationException("Database encryption is not supported on this platform.")
+    require(
+      configuration.encryptedDatabaseDriver == null || configuration.enableEncryptionIfSupported,
+    ) {
+      "FhirEngineConfiguration.encryptedDatabaseDriver is set while enableEncryptionIfSupported " +
+        "is false, which would store the database unencrypted."
+    }
+    if (
+      configuration.enableEncryptionIfSupported &&
+        !isDatabaseEncryptionSupported &&
+        configuration.encryptedDatabaseDriver == null
+    ) {
+      throw UnsupportedOperationException(
+        "Database encryption is not supported on this platform. Set " +
+          "FhirEngineConfiguration.encryptedDatabaseDriver to open the database with an " +
+          "encrypting SQLite driver of your own.",
+      )
     }
     check(this.configuration == null) { "FhirEngineProvider has already been initialized." }
     this.configuration = configuration
@@ -139,6 +153,7 @@ object FhirEngineProvider {
           inMemory = config.testMode,
           encrypt = config.enableEncryptionIfSupported,
           errorStrategy = config.databaseErrorStrategy,
+          encryptedDatabaseDriver = config.encryptedDatabaseDriver,
         ),
       )
 

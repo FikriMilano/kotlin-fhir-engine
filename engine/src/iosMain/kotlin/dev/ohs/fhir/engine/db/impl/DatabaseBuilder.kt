@@ -54,7 +54,12 @@ internal actual fun getDatabaseBuilder(
 internal actual val isDatabaseEncryptionSupported: Boolean = true
 
 internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver =
-  if (config.encrypt) EncryptedDatabaseDriver(config.errorStrategy) else NativeSQLiteDriver()
+  when {
+    !config.encrypt -> NativeSQLiteDriver()
+    // A driver from the caller replaces the engine's Keychain key and PRAGMA key.
+    config.encryptedDatabaseDriver != null -> config.encryptedDatabaseDriver
+    else -> EncryptedDatabaseDriver(config.errorStrategy)
+  }
 
 /**
  * Keys every connection with the Keychain key. The engine does not ship SQLCipher, the app links it

@@ -24,9 +24,18 @@ internal data class DatabaseConfig(
   val inMemory: Boolean = false,
   val encrypt: Boolean = false,
   val errorStrategy: DatabaseErrorStrategy = DatabaseErrorStrategy.UNSPECIFIED,
+  /**
+   * From [dev.ohs.fhir.engine.FhirEngineConfiguration.encryptedDatabaseDriver]. Replaces the
+   * platform's own encrypted driver, and the only way to encrypt where
+   * [isDatabaseEncryptionSupported] is false.
+   */
+  val encryptedDatabaseDriver: SQLiteDriver? = null,
 )
 
-/** Whether [DatabaseConfig.encrypt] can be honored on this platform. */
+/**
+ * Whether [DatabaseConfig.encrypt] can be honored on this platform without a driver from the
+ * caller.
+ */
 internal expect val isDatabaseEncryptionSupported: Boolean
 
 /**

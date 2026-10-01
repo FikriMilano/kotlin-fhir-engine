@@ -143,20 +143,85 @@ Set `enableEncryptionIfSupported = true` to store the database encrypted with
   SQLite the engine calls. The key is 32 random bytes kept in the Keychain. If the app links the
   system SQLite with encryption on, the first database access fails with a message saying SQLCipher
   is not linked.
-- **Desktop and web.** Not supported. `FhirEngineProvider.init` throws
-  `UnsupportedOperationException` rather than silently storing plaintext.
+- **Desktop and web.** The engine ships no encrypting SQLite for either. Set
+  `encryptedDatabaseDriver` and the engine opens through it. Without one, `FhirEngineProvider.init`
+  throws `UnsupportedOperationException` rather than silently storing plaintext.
 
-Opening a stored database with the other setting throws `IllegalStateException`. Web cannot make
-that check, because reading the origin private file system suspends and the check runs while the
-database is being built. The two settings use different names there, so switching starts an empty
-database and leaves the old one in place unread. A database whose key was lost fails to open with an
-`SQLiteException`, or, with `DatabaseErrorStrategy.RECREATE_AT_OPEN`, is deleted and created again
-empty.
+Encryption cannot be turned on or off once data was stored. Opening with the other setting throws
+`IllegalStateException` on Android, iOS and desktop. Web cannot make that check, so switching there
+starts an empty database and leaves the old one in place unread. A database whose key was lost fails
+to open with an `SQLiteException`, or, with `DatabaseErrorStrategy.RECREATE_AT_OPEN`, is deleted and
+created again empty.
 
 The key stays on the device it was created on. A backup restored to another device brings no key
 with it, so the app starts with an empty database there and syncs again. Local changes that were
 not uploaded before the restore are lost. On iOS the encrypted file is excluded from backups for
 that reason. The Keychain also refuses unsigned binaries, so run a signed build.
+
+#### Bringing your own encryption
+
+`encryptedDatabaseDriver` takes an `androidx.sqlite.SQLiteDriver`, which the engine exposes so you
+do not declare it yourself. The engine asks it for every connection, so the key is applied there.
+The file is still `resources_encrypted.db`, and on Android and iOS the driver replaces the engine's
+own SQLCipher driver.
+
+Write it in a platform source set. On web `open` is a suspend function, everywhere else it is not.
+
+```kotlin
+// `delegate` is your encrypting SQLite driver. The engine ships none for desktop or web, so this
+// has to be something you bring, not one of the engine's own drivers.
+class EncryptingDriver(private val delegate: SQLiteDriver, private val keyInHex: String) :
+  SQLiteDriver {
+
+  // Room reads this to decide whether to pool connections itself, so pass the real answer through.
+  override val hasConnectionPool: Boolean
+    get() = delegate.hasConnectionPool
+
+  override fun open(fileName: String): SQLiteConnection {
+    val connection = delegate.open(fileName)
+    try {
+      // SQLCipher's raw key form, the blob literal in quotes. A passphrase goes in single quotes.
+      connection.execSQL("PRAGMA key = \"x'$keyInHex'\"")
+      // An unknown pragma returns nothing rather than failing, so check that it answered.
+      check(
+        connection.prepare("PRAGMA cipher_version").use { it.step() && it.getText(0).isNotEmpty() },
+      ) {
+        "SQLCipher is not linked, so the database cannot be encrypted."
+      }
+      // Applying the key proves nothing on its own. Reading the header is what rejects a wrong key.
+      connection.prepare("SELECT count(*) FROM sqlite_master").use { it.step() }
+    } catch (exception: Throwable) {
+      connection.close()
+      throw exception
+    }
+    return connection
+  }
+}
+
+FhirEngineProvider.init(
+  FhirEngineConfiguration(
+    enableEncryptionIfSupported = true,
+    encryptedDatabaseDriver = EncryptingDriver(yourSqlCipherDriver, keyFromYourKeyStore()),
+  ),
+)
+```
+
+[`DatabaseBuilder.kt`](engine/src/iosMain/kotlin/dev/ohs/fhir/engine/db/impl/DatabaseBuilder.kt) is
+a working version, the one the engine uses on iOS.
+
+Your driver owns all of this.
+
+- Applying the key to every connection before any other statement runs, since Room opens several.
+- Throwing rather than falling back to plaintext when the key does not fit.
+- Forwarding `hasConnectionPool` when it wraps another driver.
+- Recreating the database on a key failure. `DatabaseErrorStrategy.RECREATE_AT_OPEN` does nothing
+  for a driver of your own.
+- Keeping the key somewhere other than the database directory.
+- Not adding or removing the driver for a database that already holds data. The key changes under
+  the same file, so the open fails, or the data is deleted under
+  `DatabaseErrorStrategy.RECREATE_AT_OPEN`. Migrate it yourself.
+
+Setting the driver without `enableEncryptionIfSupported` is rejected at init.
 
 ### Synchronizing with a FHIR server
 

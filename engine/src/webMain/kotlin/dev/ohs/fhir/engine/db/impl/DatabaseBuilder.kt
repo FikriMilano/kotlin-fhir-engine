@@ -49,10 +49,15 @@ internal actual fun getDatabaseBuilder(
 
 internal actual val isDatabaseEncryptionSupported: Boolean = false
 
-internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver {
-  require(!config.encrypt) { "Database encryption is not supported on web." }
-  return createSqliteWasmDriver()
-}
+internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver =
+  if (config.encrypt) {
+    // The engine's SQLite WASM build has no encryption, so only the caller can encrypt.
+    requireNotNull(config.encryptedDatabaseDriver) {
+      "Database encryption on web needs FhirEngineConfiguration.encryptedDatabaseDriver."
+    }
+  } else {
+    createSqliteWasmDriver()
+  }
 
 internal actual fun databaseFileName(
   platformContext: Any,
