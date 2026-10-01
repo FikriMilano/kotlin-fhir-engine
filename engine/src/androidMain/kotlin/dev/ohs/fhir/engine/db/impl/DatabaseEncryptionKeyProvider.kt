@@ -35,6 +35,8 @@ import javax.crypto.SecretKey
  * passphrase is only ever held in memory.
  */
 internal object DatabaseEncryptionKeyProvider {
+  // Derived passphrases stay here for the life of the process, as in the android-fhir engine.
+  // SQLCipher needs one on every open.
   private val keyMap = mutableMapOf<String, ByteArray>()
 
   @Synchronized
@@ -87,7 +89,10 @@ internal object DatabaseEncryptionKeyProvider {
   private const val MESSAGE_TO_BE_SIGNED = "Android FHIR SDK rocks!"
 }
 
-// The Keystore reports its keymaster error code as a negative number in the exception message.
+// The Keystore reports its keymaster error code as a negative number in the exception message, with
+// no API to read it. If that text changes, transient failures fall through to UNKNOWN and stop
+// being
+// retried.
 private val KeyStoreException.databaseEncryptionException: DatabaseEncryptionException
   get() {
     val errorCode = message?.let { "-[0-9]+".toRegex().find(it)?.value?.toIntOrNull() }
