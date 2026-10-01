@@ -61,7 +61,7 @@ import platform.posix.memcpy
  */
 @OptIn(ExperimentalForeignApi::class)
 internal object DatabaseEncryptionKeyProvider {
-  // The simulator test process has no Keychain, so tests replace this.
+  // Tests replace this, because the simulator test process has no Keychain.
   internal var keySourceForTesting: () -> ByteArray = { readKey() ?: createKey() }
 
   fun getOrCreateKey(): ByteArray = keySourceForTesting()

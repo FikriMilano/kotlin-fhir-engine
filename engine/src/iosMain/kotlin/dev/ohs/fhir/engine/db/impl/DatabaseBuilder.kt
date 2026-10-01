@@ -29,6 +29,7 @@ import kotlinx.coroutines.IO
 import platform.Foundation.NSApplicationSupportDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
+import platform.Foundation.NSThread
 import platform.Foundation.NSURL
 import platform.Foundation.NSURLIsExcludedFromBackupKey
 import platform.Foundation.NSUserDomainMask
@@ -63,8 +64,13 @@ private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorSt
   SQLiteDriver {
   private val driver = NativeSQLiteDriver()
 
-  // Read once here, on the constructing thread, since Room opens pooled connections concurrently.
-  private val key = DatabaseEncryptionKeyProvider.getOrCreateKey()
+  // Read on the first open, as on Android, so a Keychain failure is thrown by the first database
+  // call. Lazy reads it once for all of Room's connections.
+  private val key by lazy {
+    readKeyRetryingTimeouts({ NSThread.sleepForTimeInterval(it / 1000.0) }) {
+      DatabaseEncryptionKeyProvider.getOrCreateKey()
+    }
+  }
 
   override fun open(fileName: String): SQLiteConnection =
     try {
@@ -96,18 +102,25 @@ private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorSt
     return connection
   }
 
-  // The key never leaves this device, so a restored copy of the file could not be read anyway.
+  // A restored copy cannot be read without the key, so the files are kept out of backups. The -wal
+  // and -shm files only exist after the first write, so they are excluded on a later open.
   @OptIn(ExperimentalForeignApi::class)
   private fun excludeFromBackup(fileName: String) {
-    NSURL.fileURLWithPath(fileName)
-      .setResourceValue(true, forKey = NSURLIsExcludedFromBackupKey, error = null)
+    for (suffix in DATABASE_FILE_SUFFIXES) {
+      NSURL.fileURLWithPath(fileName + suffix)
+        .setResourceValue(true, forKey = NSURLIsExcludedFromBackupKey, error = null)
+    }
   }
 
   @OptIn(ExperimentalForeignApi::class)
   private fun deleteDatabaseFiles(fileName: String) {
-    for (suffix in listOf("", "-wal", "-shm", "-journal")) {
+    for (suffix in DATABASE_FILE_SUFFIXES) {
       NSFileManager.defaultManager.removeItemAtPath(fileName + suffix, error = null)
     }
+  }
+
+  private companion object {
+    val DATABASE_FILE_SUFFIXES = listOf("", "-wal", "-shm", "-journal")
   }
 }
 
