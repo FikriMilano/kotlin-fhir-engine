@@ -24,7 +24,6 @@ import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteDriver
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import dev.ohs.fhir.engine.DatabaseErrorStrategy
-import dev.ohs.fhir.engine.db.DatabaseEncryptionException
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import net.zetetic.database.sqlcipher.driver.SQLCipherDriver
@@ -61,8 +60,11 @@ private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorSt
     System.loadLibrary("sqlcipher")
   }
 
+  // One driver, so one pool. Built on the first open, which Room runs off the main thread. Loading
+  // SQLCipher above is not deferred.
+  private val driver by lazy { SQLCipherDriver(passphraseWithRetry(), null, null) }
+
   override fun open(fileName: String): SQLiteConnection {
-    val driver = SQLCipherDriver(passphraseWithRetry(), null, null)
     return try {
       driver.open(fileName)
     } catch (exception: SQLiteException) {
@@ -74,30 +76,15 @@ private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorSt
     }
   }
 
+  // What SQLCipherDriver reports. Asking it would build the driver, which needs the deferred
+  // passphrase.
   override val hasConnectionPool: Boolean
     get() = true
 
-  // The last attempt throws whatever the Keystore reports.
-  private fun passphraseWithRetry(): ByteArray {
-    repeat(MAX_RETRY_ATTEMPTS - 1) { attempt ->
-      try {
-        return DatabaseEncryptionKeyProvider.getOrCreatePassphrase(DATABASE_PASSPHRASE_NAME)
-      } catch (exception: DatabaseEncryptionException) {
-        if (
-          exception.errorCode != DatabaseEncryptionException.DatabaseEncryptionErrorCode.TIMEOUT
-        ) {
-          throw exception
-        }
-        Thread.sleep(RETRY_DELAY_MILLIS * (attempt + 1))
-      }
+  private fun passphraseWithRetry(): ByteArray =
+    readKeyRetryingTimeouts(Thread::sleep) {
+      DatabaseEncryptionKeyProvider.getOrCreatePassphrase(DATABASE_PASSPHRASE_NAME)
     }
-    return DatabaseEncryptionKeyProvider.getOrCreatePassphrase(DATABASE_PASSPHRASE_NAME)
-  }
-
-  private companion object {
-    const val MAX_RETRY_ATTEMPTS = 3
-    const val RETRY_DELAY_MILLIS = 1000L
-  }
 }
 
 internal actual fun databaseFileName(
