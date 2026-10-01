@@ -38,8 +38,8 @@ keeps the original's shape for source compatibility but not every knob is functi
 | `storageDirectory`                                         | ✅      | Desktop and web only. See [Platform support](conformance.md#platform-support).                                         |
 | `uploadWithGzip`                                           | ⚠️     | Works on Android and Desktop. Broken labeling on iOS and web. See [Platform support](conformance.md#platform-support). |
 | `httpCache`                                                | ⚠️     | Toggles Ktor's default in-memory cache. `CacheConfiguration.cacheDir` and `maxSize` are ignored.                       |
-| `enableEncryptionIfSupported`                              | ❌      | Throws `IllegalArgumentException`. Encryption is not yet implemented.                                                  |
-| `databaseErrorStrategy`                                    | ❌      | Accepted but never read. `RECREATE_AT_OPEN` has no effect.                                                             |
+| `enableEncryptionIfSupported`                              | ✅      | Android only for now. iOS, desktop and web throw at init. See [Platform support](conformance.md#platform-support).   |
+| `databaseErrorStrategy`                                    | ✅      | `RECREATE_AT_OPEN` recreates an encrypted database the current key cannot open, as in android-fhir.                   |
 | `testMode`                                                 | ✅      | In-memory database on every platform.                                                                                  |
 
 ## Database
@@ -51,4 +51,5 @@ Databases from this library's releases 2.0.0-alpha01, alpha02 and alpha03 are co
 and keep their data. They reused android-fhir's version 2 with a different layout, so they are told
 apart by that layout and converted instead of migrated. ✅
 
-Encrypted android-fhir databases are not opened yet. ❌
+Encrypted android-fhir databases open on Android. The passphrase is derived from the same Keystore
+key with the same message, and the file name is the same. ✅
