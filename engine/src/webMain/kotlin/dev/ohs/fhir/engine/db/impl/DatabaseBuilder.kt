@@ -58,8 +58,17 @@ internal actual fun databaseFileName(
   platformContext: Any,
   storageDirectory: String?,
   encrypted: Boolean,
-): String = storageDirectory?.let { "$it-$DATABASE_NAME" } ?: DATABASE_NAME
+): String {
+  val name = if (encrypted) ENCRYPTED_DATABASE_NAME else DATABASE_NAME
+  return storageDirectory?.let { "$it-$name" } ?: name
+}
 
+/**
+ * Always false. The origin private file system can only be read from a suspending call and this one
+ * runs while the database is being built, so the check that refuses to open a stored database with
+ * the other encryption setting cannot run here. The two settings use different names instead, so
+ * neither can be opened through the wrong driver.
+ */
 internal actual fun databaseFileExists(
   platformContext: Any,
   storageDirectory: String?,
