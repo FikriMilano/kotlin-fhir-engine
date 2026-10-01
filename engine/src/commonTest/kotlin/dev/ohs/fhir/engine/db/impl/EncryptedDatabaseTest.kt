@@ -33,7 +33,12 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlinx.coroutines.test.runTest
 
-/** Runs where the platform can encrypt, Android and iOS, and returns early elsewhere. */
+/**
+ * Runs where the platform can encrypt, so desktop and web are not covered here.
+ *
+ * Reading the file header back is the only evidence in the whole suite that any of this makes bytes
+ * unreadable.
+ */
 class EncryptedDatabaseTest {
   private val support = encryptionTestSupport
 
