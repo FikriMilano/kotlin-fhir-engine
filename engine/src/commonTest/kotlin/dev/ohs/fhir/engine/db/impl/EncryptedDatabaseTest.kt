@@ -37,7 +37,8 @@ import kotlinx.coroutines.test.runTest
  * Runs where the platform can encrypt, so desktop and web are not covered here.
  *
  * Reading the file header back is the only evidence in the whole suite that any of this makes bytes
- * unreadable.
+ * unreadable. The cipher version guard and the real Keychain are untested, the Keychain because the
+ * simulator has none.
  */
 class EncryptedDatabaseTest {
   private val support = encryptionTestSupport

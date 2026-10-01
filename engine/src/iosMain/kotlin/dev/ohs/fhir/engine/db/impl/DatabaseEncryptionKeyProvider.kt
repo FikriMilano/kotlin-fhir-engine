@@ -61,7 +61,9 @@ import platform.posix.memcpy
  */
 @OptIn(ExperimentalForeignApi::class)
 internal object DatabaseEncryptionKeyProvider {
-  // The simulator test process has no Keychain, so tests replace this.
+  // The simulator test process has no Keychain, so tests replace this. It is the only seam that
+  // lets the driver be tested at all, and the key it returns stays in memory for the life of the
+  // process either way.
   internal var keySourceForTesting: () -> ByteArray = { readKey() ?: createKey() }
 
   fun getOrCreateKey(): ByteArray = keySourceForTesting()
