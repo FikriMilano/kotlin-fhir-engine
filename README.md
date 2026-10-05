@@ -144,7 +144,8 @@ Set `enableEncryptionIfSupported = true` to store the database encrypted with
   system SQLite with encryption on, the first database access fails with a message saying SQLCipher
   is not linked.
 - **Desktop and web.** Not supported. `FhirEngineProvider.init` throws
-  `UnsupportedOperationException` rather than silently storing plaintext.
+  `UnsupportedOperationException` rather than silently storing plaintext. Why, and what support
+  would take, is under [Desktop and web](#desktop-and-web) below.
 
 Opening a stored database with the other setting throws `IllegalStateException`. Web cannot make
 that check, because reading the origin private file system suspends and the check runs while the
@@ -157,6 +158,47 @@ The key stays on the device it was created on. A backup restored to another devi
 with it, so the app starts with an empty database there and syncs again. Local changes that were
 not uploaded before the restore are lost. On iOS the encrypted file is excluded from backups for
 that reason. The Keychain also refuses unsigned binaries, so run a signed build.
+
+#### Desktop and web
+
+The engine opens its database through Room, which talks to SQLite through an androidx.sqlite
+`SQLiteDriver`. Encrypting takes a SQLite build with a cipher behind that driver and a safe place for
+the key. Android and iOS have both. Desktop and web have neither ready to use.
+
+Room offers no guide for this either. Its
+[Kotlin Multiplatform setup](https://developer.android.com/kotlin/multiplatform/room), the
+[androidx.sqlite one](https://developer.android.com/kotlin/multiplatform/sqlite) and the
+[Room 3.0 announcement](https://android-developers.googleblog.com/2026/03/room-30-modernizing-room.html)
+do not mention encryption, and none of the four drivers androidx.sqlite ships encrypts. What works on
+Android and iOS here is the engine's own wiring of SQLCipher behind those drivers.
+
+**Desktop.** The engine uses `BundledSQLiteDriver`, which compiles a plain SQLite into its native
+library. No encrypting SQLite ships as a `SQLiteDriver` for the JVM. Encrypted SQLite on the JVM
+exists over JDBC, for example [sqlite-jdbc-crypt](https://github.com/Willena/sqlite-jdbc-crypt),
+which is built on [SQLite3MultipleCiphers](https://github.com/utelle/SQLite3MultipleCiphers) and can
+write SQLCipher compatible files. Support would take
+
+1. a `SQLiteDriver` over that JDBC driver, or over a JNI binding to SQLCipher, tested against the way
+   Room uses connections (several at once, write ahead logging, foreign keys),
+2. a key kept in the operating system's store, the macOS Keychain, the Windows Credential Manager or
+   the Linux Secret Service,
+3. a native library for every desktop operating system the engine runs on.
+
+Until then, full disk encryption (FileVault, BitLocker, LUKS) protects the database file at rest
+with no change to the engine.
+
+**Web.** SQLCipher has no WebAssembly build, and no encrypting SQLite WebAssembly build is
+published ready to use. The commercial
+[SQLite Encryption Extension](https://sqlite.org/wasm/doc/trunk/see.md) and SQLite3MultipleCiphers
+can both be compiled into sqlite-wasm, but neither has been tried with the origin private file
+system the engine stores its database in. Support would take
+
+1. building and maintaining one of those WebAssembly builds, and the engine's database worker on top
+   of it,
+2. a place for the key. Browsers have no secure key store, so the key would come from a passphrase
+   the user types, from the server after sign in, or wrapped by a WebCrypto key that cannot be
+   exported. None of these keeps out script running on the same origin, so encryption on web mainly
+   protects against someone copying the browser profile.
 
 ### Synchronizing with a FHIR server
 
