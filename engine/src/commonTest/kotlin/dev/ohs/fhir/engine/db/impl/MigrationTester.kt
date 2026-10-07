@@ -29,7 +29,7 @@ import kotlin.test.assertEquals
  * exported target schema. Room's own helper does not exist for web and reads files on iOS.
  */
 internal class MigrationTester(platformContext: Any, storageDirectory: String?) {
-  private val driver = databaseDriver()
+  private val driver = sharedDriver
   private val fileName = databaseFileName(platformContext, storageDirectory)
 
   init {
@@ -134,4 +134,10 @@ internal class MigrationTester(platformContext: Any, storageDirectory: String?) 
 
   private fun SQLiteStatement.textOrNull(index: Int): String? =
     if (isNull(index)) null else getText(index)
+
+  private companion object {
+    // One driver for every test. On web each driver starts a SQLite Web Worker that nothing
+    // terminates, and one per test left the browser on CI unresponsive.
+    val sharedDriver by lazy { databaseDriver() }
+  }
 }
