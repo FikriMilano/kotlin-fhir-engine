@@ -97,9 +97,6 @@ dependencies {
 }
 ```
 
-Android apps, including the Android target of a multiplatform project, must set `compileSdk = 37`.
-The engine depends on `sqlcipher-android` 4.18, which requires it even when encryption is off.
-
 ### Persisting and searching resources
 
 Initialize `FhirEngineProvider` once at startup, then use the `FhirEngine` instance for CRUD and

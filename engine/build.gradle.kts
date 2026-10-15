@@ -24,7 +24,7 @@ kotlin {
 
   androidLibrary {
     namespace = "dev.ohs.fhir.engine"
-    compileSdk = 37
+    compileSdk = 36
     minSdk = 26
     withHostTestBuilder {}
     withDeviceTestBuilder { sourceSetTreeName = "test" }

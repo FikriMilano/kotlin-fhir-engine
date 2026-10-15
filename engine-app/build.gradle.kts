@@ -14,7 +14,7 @@ plugins {
 
 android {
   namespace = "dev.ohs.fhir.engine.app"
-  compileSdk = 37
+  compileSdk = 36
 
   defaultConfig {
     applicationId = "dev.ohs.fhir.engine.app"
