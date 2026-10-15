@@ -18,6 +18,7 @@ package dev.ohs.fhir.engine.db.impl
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase as AndroidSQLiteDatabase
 import android.database.sqlite.SQLiteDatabaseCorruptException
+import android.database.sqlite.SQLiteException
 import androidx.room3.Room
 import androidx.room3.RoomDatabase
 import androidx.sqlite.SQLiteConnection
@@ -26,6 +27,7 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import dev.ohs.fhir.engine.DatabaseErrorStrategy
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import net.zetetic.database.sqlcipher.SQLiteNotADatabaseException
 import net.zetetic.database.sqlcipher.driver.SQLCipherDriver
 
 internal actual fun getDatabaseBuilder(
@@ -57,16 +59,18 @@ internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver =
 private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorStrategy) :
   SQLiteDriver {
   // One driver, so one pool. No error handler, because SQLCipher's default one never deletes an
-  // encrypted file, so a wrong key reaches the catch below.
+  // encrypted file, so an unreadable one reaches the catch below.
   private val driver by lazy { SQLCipherDriver(passphraseWithRetry(), null, null) }
 
   override fun open(fileName: String): SQLiteConnection {
     return try {
       driver.open(fileName)
-    } catch (exception: SQLiteDatabaseCorruptException) {
-      // A wrong key reads as a corrupt file. Only that case is recreated, never a locked or full
-      // disk, which would lose data that is still readable.
-      if (errorStrategy != DatabaseErrorStrategy.RECREATE_AT_OPEN) throw exception
+    } catch (exception: SQLiteException) {
+      // SQLCipher checks the key at open and reports a wrong one as not a database. Only that and a
+      // corrupt file are recreated, never a locked or full disk, which would lose readable data.
+      val unreadable =
+        exception is SQLiteNotADatabaseException || exception is SQLiteDatabaseCorruptException
+      if (errorStrategy != DatabaseErrorStrategy.RECREATE_AT_OPEN || !unreadable) throw exception
       AndroidSQLiteDatabase.deleteDatabase(File(fileName))
       driver.open(fileName)
     }
