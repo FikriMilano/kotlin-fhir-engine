@@ -15,11 +15,14 @@
  */
 package dev.ohs.fhir.engine.db.impl
 
+import android.os.Build
+import android.security.KeyStoreException as AndroidKeyStoreException
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties.KEY_ALGORITHM_HMAC_SHA256
 import android.security.keystore.KeyProperties.PURPOSE_SIGN
 import androidx.annotation.VisibleForTesting
 import dev.ohs.fhir.engine.db.DatabaseEncryptionException
+import dev.ohs.fhir.engine.db.DatabaseEncryptionException.DatabaseEncryptionErrorCode
 import dev.ohs.fhir.engine.db.DatabaseEncryptionException.DatabaseEncryptionErrorCode.TIMEOUT
 import dev.ohs.fhir.engine.db.DatabaseEncryptionException.DatabaseEncryptionErrorCode.UNKNOWN
 import dev.ohs.fhir.engine.db.DatabaseEncryptionException.DatabaseEncryptionErrorCode.UNSUPPORTED
@@ -68,11 +71,11 @@ internal object DatabaseEncryptionKeyProvider {
     } catch (exception: NoSuchAlgorithmException) {
       throw DatabaseEncryptionException(exception, UNSUPPORTED)
     } catch (exception: GeneralSecurityException) {
-      throw DatabaseEncryptionException(exception, UNKNOWN)
+      throw DatabaseEncryptionException(exception, exception.wrappedKeystoreErrorCode)
     } catch (exception: IOException) {
       throw DatabaseEncryptionException(exception, UNKNOWN)
     } catch (exception: ProviderException) {
-      throw DatabaseEncryptionException(exception, UNKNOWN)
+      throw DatabaseEncryptionException(exception, exception.wrappedKeystoreErrorCode)
     }
   }
 
@@ -101,6 +104,18 @@ private val KeyStoreException.databaseEncryptionException: DatabaseEncryptionExc
         else -> UNKNOWN
       },
     )
+  }
+
+// From API 33 key generation and signing failures wrap an android.security.KeyStoreException,
+// which says whether a retry can help. Without this a busy Keystore there is never retried.
+private val Throwable.wrappedKeystoreErrorCode: DatabaseEncryptionErrorCode
+  get() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return UNKNOWN
+    val failure =
+      generateSequence(cause) { it.cause }
+        .filterIsInstance<AndroidKeyStoreException>()
+        .firstOrNull()
+    return if (failure?.isTransientFailure == true) TIMEOUT else UNKNOWN
   }
 
 private val UNSUPPORTED_KEYMASTER_ERRORS =
