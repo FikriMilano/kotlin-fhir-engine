@@ -28,6 +28,7 @@ import dev.ohs.fhir.model.r4.terminologies.ResourceType
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -85,6 +86,7 @@ class EncryptedDatabaseTest {
   fun encryptedDatabase_thenLostKey_throws() = runTest {
     val support = support ?: return@runTest
     openDatabase(encrypt = true).use { it.insert(PATIENT) }
+    val header = support.readDatabaseHeader(encrypted = true)
     support.loseDatabaseKey()
 
     openDatabase(encrypt = true).use { database ->
@@ -92,6 +94,8 @@ class EncryptedDatabaseTest {
         database.select(ResourceType.Patient, PATIENT_ID)
       }
     }
+    // The header holds the file's random salt, so an unchanged one means the file was kept.
+    assertContentEquals(header, support.readDatabaseHeader(encrypted = true))
   }
 
   @Test

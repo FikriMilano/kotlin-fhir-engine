@@ -22,7 +22,7 @@ internal interface EncryptionTestSupport {
   /** Deletes the plain and the encrypted database file. */
   fun deleteDatabaseFiles()
 
-  /** The first 16 bytes of the database file. */
+  /** The first 16 bytes of the database file. Throws if the file is shorter. */
   fun readDatabaseHeader(encrypted: Boolean): ByteArray
 
   /** Starts from a fresh key. */

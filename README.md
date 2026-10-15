@@ -144,6 +144,10 @@ Opening a stored database with the other setting throws `IllegalStateException`.
 lost, the first database call throws `SQLiteException`, or, with
 `DatabaseErrorStrategy.RECREATE_AT_OPEN`, the database is deleted and created again empty.
 
+If the Keystore cannot provide the key, the first database call throws `DatabaseEncryptionException`.
+An `errorCode` of `TIMEOUT` means it stayed busy through the engine's retries, so a later call can
+succeed. `UNSUPPORTED` and `UNKNOWN` will not clear on their own.
+
 The key never leaves the device, so a backup restored to another device cannot be read. Exclude
 `resources_encrypted.db` from your app's backup rules so a restored app starts empty. Local changes
 not uploaded before the restore are lost either way.

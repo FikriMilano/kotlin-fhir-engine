@@ -27,8 +27,10 @@ internal fun resourceDatabaseBuilder(
   storageDirectory: String?,
   config: DatabaseConfig,
 ): RoomDatabase.Builder<ResourceDatabase> {
-  require(!config.encrypt || isDatabaseEncryptionSupported) {
-    "Database encryption is not supported on this platform."
+  // FhirEngineProvider.init refuses this too. Repeated here because tests and benchmarks build the
+  // database directly, and the platform drivers would store plaintext under the encrypted name.
+  if (config.encrypt && !isDatabaseEncryptionSupported) {
+    throw UnsupportedOperationException("Database encryption is not supported on this platform.")
   }
   if (!config.inMemory) {
     val other = config.copy(encrypt = !config.encrypt)

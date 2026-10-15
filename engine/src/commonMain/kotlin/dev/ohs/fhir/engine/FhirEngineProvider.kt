@@ -80,7 +80,10 @@ object FhirEngineProvider {
    *
    * @param platformContext Platform-specific context. On Android, this should be the application
    *   `Context`. On Desktop and iOS, pass `Unit` or omit.
+   * @throws IllegalStateException if [init] was not called, or if a database stored with the other
+   *   encryption setting exists.
    */
+  @Throws(IllegalStateException::class)
   fun getInstance(platformContext: Any = Unit): FhirEngine {
     val config =
       checkNotNull(configuration) {

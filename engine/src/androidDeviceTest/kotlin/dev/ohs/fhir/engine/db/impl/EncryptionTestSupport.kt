@@ -19,6 +19,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteException
 import androidx.test.core.app.ApplicationProvider
 import java.io.File
+import java.io.RandomAccessFile
 import java.security.KeyStore
 import kotlin.reflect.KClass
 
@@ -33,9 +34,8 @@ internal actual val encryptionTestSupport: EncryptionTestSupport? =
     }
 
     override fun readDatabaseHeader(encrypted: Boolean): ByteArray =
-      File(databaseFileName(context, null, DatabaseConfig(encrypt = encrypted)))
-        .inputStream()
-        .use { stream -> ByteArray(16).also { stream.read(it) } }
+      RandomAccessFile(databaseFileName(context, null, DatabaseConfig(encrypt = encrypted)), "r")
+        .use { file -> ByteArray(16).also(file::readFully) }
 
     override fun resetDatabaseKey() = loseDatabaseKey()
 

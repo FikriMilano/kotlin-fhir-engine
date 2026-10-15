@@ -56,7 +56,8 @@ internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver =
  */
 private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorStrategy) :
   SQLiteDriver {
-  // One driver, so one pool. Built on the first open, which Room runs off the main thread.
+  // One driver, so one pool. No error handler, because SQLCipher's default one never deletes an
+  // encrypted file, so a wrong key reaches the catch below.
   private val driver by lazy { SQLCipherDriver(passphraseWithRetry(), null, null) }
 
   override fun open(fileName: String): SQLiteConnection {

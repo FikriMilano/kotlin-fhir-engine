@@ -47,25 +47,32 @@ internal object DatabaseEncryptionKeyProvider {
 
   /** Every failure is a [DatabaseEncryptionException], so callers handle one exception type. */
   @Synchronized
-  fun getOrCreatePassphrase(keyName: String): ByteArray {
-    passphrases[keyName]?.let {
-      return it
-    }
+  fun getOrCreatePassphrase(keyName: String): ByteArray =
+    passphrases.getOrPut(keyName) { derivePassphrase(keyName) }
+
+  private fun derivePassphrase(keyName: String): ByteArray =
     try {
       val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE_NAME).apply { load(null) }
       val signingKey =
-        keyStore.getKey(keyName, null) as SecretKey?
-          ?: KeyGenerator.getInstance(KEY_ALGORITHM_HMAC_SHA256, ANDROID_KEYSTORE_NAME).run {
-            init(KeyGenParameterSpec.Builder(keyName, PURPOSE_SIGN).build())
-            generateKey()
-          }
-      val passphrase =
-        Mac.getInstance(KEY_ALGORITHM_HMAC_SHA256).run {
-          init(signingKey)
-          doFinal(MESSAGE_TO_BE_SIGNED.toByteArray(Charsets.UTF_8))
+        when (val stored = keyStore.getKey(keyName, null)) {
+          null ->
+            KeyGenerator.getInstance(KEY_ALGORITHM_HMAC_SHA256, ANDROID_KEYSTORE_NAME).run {
+              init(KeyGenParameterSpec.Builder(keyName, PURPOSE_SIGN).build())
+              generateKey()
+            }
+          is SecretKey -> stored
+          // Replacing it would hide that something else owns the alias, so fail instead.
+          else ->
+            throw DatabaseEncryptionException(
+              null,
+              UNKNOWN,
+              "Keystore entry $keyName is not a secret key.",
+            )
         }
-      passphrases[keyName] = passphrase
-      return passphrase
+      Mac.getInstance(KEY_ALGORITHM_HMAC_SHA256).run {
+        init(signingKey)
+        doFinal(MESSAGE_TO_BE_SIGNED.toByteArray(Charsets.UTF_8))
+      }
     } catch (exception: KeyStoreException) {
       throw exception.databaseEncryptionException
     } catch (exception: NoSuchAlgorithmException) {
@@ -77,7 +84,6 @@ internal object DatabaseEncryptionKeyProvider {
     } catch (exception: ProviderException) {
       throw DatabaseEncryptionException(exception, exception.wrappedKeystoreErrorCode)
     }
-  }
 
   @VisibleForTesting
   fun clearKeyCache() {
@@ -93,7 +99,7 @@ internal object DatabaseEncryptionKeyProvider {
 // The Keystore reports its keymaster error code as a negative number in the exception message,
 // with no API to read it. If that text changes, transient failures fall through to UNKNOWN and are
 // no longer retried.
-private val KeyStoreException.databaseEncryptionException: DatabaseEncryptionException
+internal val KeyStoreException.databaseEncryptionException: DatabaseEncryptionException
   get() {
     val errorCode = message?.let { "-[0-9]+".toRegex().find(it)?.value?.toIntOrNull() }
     return DatabaseEncryptionException(
