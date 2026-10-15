@@ -52,9 +52,14 @@ object FhirEngineProvider {
   /**
    * Initializes the [FhirEngineProvider] with the given [configuration].
    *
-   * This must be called before [getInstance]. Calling it again after initialization will throw an
-   * [IllegalStateException].
+   * This must be called before [getInstance].
+   *
+   * @throws UnsupportedOperationException if encryption is requested on a platform that cannot
+   *   encrypt.
+   * @throws IllegalStateException if called again after initialization.
    */
+  // Declared so Swift receives these as errors instead of the app aborting.
+  @Throws(UnsupportedOperationException::class, IllegalStateException::class)
   fun init(configuration: FhirEngineConfiguration, platformContext: Any = Unit) {
     if (configuration.enableEncryptionIfSupported && !isDatabaseEncryptionSupported) {
       throw UnsupportedOperationException("Database encryption is not supported on this platform.")
