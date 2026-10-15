@@ -61,7 +61,9 @@ enum class DatabaseErrorStrategy {
   UNSPECIFIED,
 
   /**
-   * If a database error occurs at open, automatically recreate the database.
+   * Deletes and recreates an encrypted database that the current key cannot read, for example after
+   * the key was lost. Its data is gone. Any other error, and any error on an unencrypted database,
+   * still reaches the caller, so data that is still readable is never deleted.
    *
    * This strategy is NOT respected when opening a previously unencrypted database with an encrypted
    * configuration or vice versa. An [IllegalStateException] is thrown instead.
