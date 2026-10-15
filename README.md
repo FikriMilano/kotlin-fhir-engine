@@ -145,8 +145,12 @@ lost, the first database call throws `SQLiteException`, or, with
 `DatabaseErrorStrategy.RECREATE_AT_OPEN`, the database is deleted and created again empty.
 
 The key never leaves the device, so a backup restored to another device cannot be read. Exclude
-`resources_encrypted.db` from your app's backup rules so a restored app starts empty and syncs
-again. Local changes not uploaded before the restore are lost either way.
+`resources_encrypted.db` from your app's backup rules so a restored app starts empty. Local changes
+not uploaded before the restore are lost either way.
+
+An emptied database does not refill on the next sync. Your `DownloadWorkManager` asks only for
+resources changed since the timestamps it keeps, so reset them when the database starts empty, and
+leave them out of backups too, or everything older is never downloaded again.
 
 ### Synchronizing with a FHIR server
 
