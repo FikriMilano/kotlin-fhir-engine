@@ -23,9 +23,9 @@ import dev.ohs.fhir.engine.sync.remote.HttpLogger
  * Configuration for the FHIR Engine, including database setup, error recovery, server connection,
  * and custom search parameters.
  *
- * @property enableEncryptionIfSupported Encrypt the database on platforms that support it, Android
- *   and iOS. On other platforms [FhirEngineProvider.init] throws [UnsupportedOperationException]
- *   rather than storing data unencrypted.
+ * @property enableEncryptionIfSupported Encrypt the database on platforms that support it,
+ *   currently Android. On other platforms [FhirEngineProvider.init] throws
+ *   [UnsupportedOperationException] rather than storing data unencrypted.
  * @property databaseErrorStrategy The strategy to handle database errors. Defaults to
  *   [DatabaseErrorStrategy.UNSPECIFIED].
  * @property serverConfiguration Optional configuration for connecting to a remote FHIR server.
