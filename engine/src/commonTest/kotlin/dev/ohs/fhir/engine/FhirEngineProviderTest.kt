@@ -31,7 +31,7 @@ class FhirEngineProviderTest {
 
   @AfterTest
   fun tearDown() {
-    FhirEngineProvider.clearInstance()
+    FhirEngineProvider.resetForTesting()
   }
 
   @Test
@@ -46,13 +46,13 @@ class FhirEngineProviderTest {
   }
 
   @Test
-  fun getInstance_afterClearInstance_shouldReturnDifferentInstances() {
+  fun getInstance_afterReset_shouldReturnDifferentInstances() {
     FhirEngineProvider.init(
       FhirEngineConfiguration(testMode = true, storageDirectory = testStorageDirectory()),
       testPlatformContext(),
     )
     val engineOne = FhirEngineProvider.getInstance(testPlatformContext())
-    FhirEngineProvider.clearInstance()
+    FhirEngineProvider.resetForTesting()
     FhirEngineProvider.init(
       FhirEngineConfiguration(testMode = true, storageDirectory = testStorageDirectory()),
       testPlatformContext(),
@@ -129,5 +129,18 @@ class FhirEngineProviderTest {
       assertEquals(50L * 1024L * 1024L, httpCache?.maxSize)
       assertEquals("sample-dir/http_cache", httpCache?.cacheDir)
     }
+  }
+
+  @Test
+  fun getFhirDataStore_afterReset_shouldThrow() {
+    FhirEngineProvider.init(
+      FhirEngineConfiguration(testMode = true, storageDirectory = testStorageDirectory()),
+      testPlatformContext(),
+    )
+    FhirEngineProvider.getFhirDataStore()
+
+    FhirEngineProvider.resetForTesting()
+
+    assertFailsWith<IllegalStateException> { FhirEngineProvider.getFhirDataStore() }
   }
 }
