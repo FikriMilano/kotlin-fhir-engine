@@ -40,6 +40,8 @@ internal expect val isDatabaseEncryptionSupported: Boolean
  * @param storageDirectory The database directory on desktop and a name prefix on web. Ignored on
  *   Android and iOS, which have an app-scoped location, and for an in-memory database. See
  *   [dev.ohs.fhir.engine.FhirEngineConfiguration.storageDirectory].
+ * @param config Whether the database is in memory or encrypted, and what to do when it cannot be
+ *   opened.
  */
 internal expect fun getDatabaseBuilder(
   platformContext: Any,
