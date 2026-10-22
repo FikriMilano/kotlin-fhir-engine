@@ -76,8 +76,8 @@ private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorSt
     }
   }
 
-  // What SQLCipherDriver reports. Asking it would build the driver, which needs the deferred
-  // passphrase.
+  // SQLCipherDriver.hasConnectionPool is always true. Asking it would fetch the passphrase during
+  // Room's build, possibly on the main thread, instead of at the first open on IO.
   override val hasConnectionPool: Boolean
     get() = true
 
