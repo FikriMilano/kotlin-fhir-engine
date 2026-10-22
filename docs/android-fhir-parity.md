@@ -49,5 +49,5 @@ data. ✅
 
 Databases from releases 2.0.0-alpha01 to alpha04 are converted in place and keep their data. ✅
 
-Encrypted android-fhir databases are expected to open on Android, with the same Keystore key,
-message and file name, but this is not yet verified. ⚠️
+An app on android-fhir with encryption on can update to this engine. Its database opens with the
+same Keystore key and keeps its data. ✅
