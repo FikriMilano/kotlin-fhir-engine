@@ -129,7 +129,7 @@ val patients = fhirEngine.search<Patient> {}
 
 ### Encryption
 
-Set `enableEncryptionIfSupported = true` to store the database encrypted with
+Set `enableEncryption = true` to store the database encrypted with
 [SQLCipher](https://www.zetetic.net/sqlcipher/). The encrypted database is `resources_encrypted.db`.
 
 #### What each platform does

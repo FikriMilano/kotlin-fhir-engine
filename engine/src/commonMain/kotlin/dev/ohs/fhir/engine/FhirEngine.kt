@@ -42,7 +42,7 @@ import kotlinx.coroutines.flow.Flow
  * ```
  * FhirEngineProvider.init(
  *   FhirEngineConfiguration(
- *     enableEncryptionIfSupported = true,
+ *     enableEncryption = true,
  *     RECREATE_AT_OPEN
  *   )
  * )

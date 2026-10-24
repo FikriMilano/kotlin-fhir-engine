@@ -76,7 +76,7 @@ class FhirEngineProviderTest {
     if (isDatabaseEncryptionSupported) return
     assertFailsWith<UnsupportedOperationException> {
       FhirEngineProvider.init(
-        FhirEngineConfiguration(enableEncryptionIfSupported = true, testMode = true),
+        FhirEngineConfiguration(enableEncryption = true, testMode = true),
         testPlatformContext(),
       )
     }

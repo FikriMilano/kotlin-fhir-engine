@@ -61,7 +61,7 @@ object FhirEngineProvider {
   // Declared so Swift receives these as errors instead of the app aborting.
   @Throws(UnsupportedOperationException::class, IllegalStateException::class)
   fun init(configuration: FhirEngineConfiguration, platformContext: Any = Unit) {
-    if (configuration.enableEncryptionIfSupported && !isDatabaseEncryptionSupported) {
+    if (configuration.enableEncryption && !isDatabaseEncryptionSupported) {
       throw UnsupportedOperationException("Database encryption is not supported on this platform.")
     }
     check(this.configuration == null) { "FhirEngineProvider has already been initialized." }
@@ -159,7 +159,7 @@ object FhirEngineProvider {
         config.storageDirectory,
         DatabaseConfig(
           inMemory = config.testMode,
-          encrypt = config.enableEncryptionIfSupported,
+          encrypt = config.enableEncryption,
           errorStrategy = config.databaseErrorStrategy,
         ),
       )
