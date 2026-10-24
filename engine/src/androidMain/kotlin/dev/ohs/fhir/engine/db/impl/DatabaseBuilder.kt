@@ -49,8 +49,13 @@ internal actual fun getDatabaseBuilder(
 
 internal actual val isDatabaseEncryptionSupported: Boolean = true
 
+// An in-memory database never reaches disk, so it is not encrypted.
 internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver =
-  if (config.encrypt) EncryptedDatabaseDriver(config.errorStrategy) else BundledSQLiteDriver()
+  if (config.encrypt && !config.inMemory) {
+    EncryptedDatabaseDriver(config.errorStrategy)
+  } else {
+    BundledSQLiteDriver()
+  }
 
 /**
  * Opens the database through SQLCipher with the Keystore derived passphrase. The passphrase is

@@ -25,7 +25,8 @@ import dev.ohs.fhir.engine.sync.remote.HttpLogger
  *
  * @property enableEncryptionIfSupported Encrypt the database on platforms that support it,
  *   currently Android. On other platforms [FhirEngineProvider.init] throws
- *   [UnsupportedOperationException] rather than storing data unencrypted.
+ *   [UnsupportedOperationException] rather than storing data unencrypted. The in-memory database of
+ *   [testMode] is not encrypted.
  * @property databaseErrorStrategy The strategy to handle database errors. Defaults to
  *   [DatabaseErrorStrategy.UNSPECIFIED].
  * @property serverConfiguration Optional configuration for connecting to a remote FHIR server.
