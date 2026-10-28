@@ -16,6 +16,7 @@
 package dev.ohs.fhir.engine.db.impl
 
 import androidx.sqlite.SQLiteException
+import androidx.sqlite.driver.NativeSQLiteDriver
 import kotlin.reflect.KClass
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -25,36 +26,50 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.dataWithContentsOfFile
 import platform.posix.memcpy
 
+/** Whether this test binary links SQLCipher. False in iosSimulatorArm64SystemSqliteTest. */
+internal val isSqlCipherLinked: Boolean =
+  NativeSQLiteDriver().open(":memory:").let { connection ->
+    try {
+      connection.prepare("PRAGMA cipher_version").use { it.step() && it.getText(0).isNotEmpty() }
+    } finally {
+      connection.close()
+    }
+  }
+
 @OptIn(ExperimentalForeignApi::class)
 internal actual val encryptionTestSupport: EncryptionTestSupport? =
-  object : EncryptionTestSupport {
-    override fun deleteDatabaseFiles() {
-      for (encrypted in listOf(false, true)) {
-        NSFileManager.defaultManager.removeItemAtPath(
-          databaseFileName(Unit, null, DatabaseConfig(encrypt = encrypted)),
-          error = null,
-        )
+  if (!isSqlCipherLinked) {
+    null
+  } else {
+    object : EncryptionTestSupport {
+      override fun deleteDatabaseFiles() {
+        for (encrypted in listOf(false, true)) {
+          NSFileManager.defaultManager.removeItemAtPath(
+            databaseFileName(Unit, null, DatabaseConfig(encrypt = encrypted)),
+            error = null,
+          )
+        }
       }
-    }
 
-    override fun readDatabaseHeader(encrypted: Boolean): ByteArray {
-      val data =
-        NSData.dataWithContentsOfFile(
-          databaseFileName(Unit, null, DatabaseConfig(encrypt = encrypted)),
-        )!!
-      return ByteArray(16).also { bytes ->
-        bytes.usePinned { memcpy(it.addressOf(0), data.bytes, 16u) }
+      override fun readDatabaseHeader(encrypted: Boolean): ByteArray {
+        val data =
+          NSData.dataWithContentsOfFile(
+            databaseFileName(Unit, null, DatabaseConfig(encrypt = encrypted)),
+          )!!
+        return ByteArray(16).also { bytes ->
+          bytes.usePinned { memcpy(it.addressOf(0), data.bytes, 16u) }
+        }
       }
+
+      // The simulator test process has no Keychain, so the key is fixed here.
+      override fun resetDatabaseKey() = useKey(1)
+
+      override fun loseDatabaseKey() = useKey(2)
+
+      private fun useKey(seed: Byte) {
+        DatabaseEncryptionKeyProvider.keySourceForTesting = { ByteArray(32) { seed } }
+      }
+
+      override val keyMismatchException: KClass<out Throwable> = SQLiteException::class
     }
-
-    // The simulator test process has no Keychain, so the key is fixed here.
-    override fun resetDatabaseKey() = useKey(1)
-
-    override fun loseDatabaseKey() = useKey(2)
-
-    private fun useKey(seed: Byte) {
-      DatabaseEncryptionKeyProvider.keySourceForTesting = { ByteArray(32) { seed } }
-    }
-
-    override val keyMismatchException: KClass<out Throwable> = SQLiteException::class
   }

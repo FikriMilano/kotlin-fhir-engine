@@ -91,19 +91,27 @@ kotlin {
   // Note: iosX64 (Intel iOS simulator) is omitted because Room 3 (androidx.room3) does not publish
   // iosX64 artifacts; including it breaks dependency resolution.
   iosArm64()
-  iosSimulatorArm64().binaries.getTest(NativeBuildType.DEBUG).apply {
-    // The engine links no SQLite on iOS, the app does. The tests link SQLCipher so that both the
-    // plain and the encrypted database run against it.
-    val slice = sqlCipherDir.map { it.dir("SQLCipher.xcframework/ios-arm64_x86_64-simulator") }
-    linkerOpts(
-      "-F",
-      slice.get().asFile.path,
-      "-framework",
-      "SQLCipher",
-      "-rpath",
-      slice.get().asFile.path,
-    )
-    linkTaskProvider.configure { dependsOn(downloadSqlCipher) }
+  iosSimulatorArm64 {
+    // On iOS the app links SQLite, not the engine. The default test binary links SQLCipher, so
+    // the plain and the encrypted database tests both run on it.
+    binaries.getTest(NativeBuildType.DEBUG).apply {
+      val slice = sqlCipherDir.map { it.dir("SQLCipher.xcframework/ios-arm64_x86_64-simulator") }
+      linkerOpts(
+        "-F",
+        slice.get().asFile.path,
+        "-framework",
+        "SQLCipher",
+        "-rpath",
+        slice.get().asFile.path,
+      )
+      linkTaskProvider.configure { dependsOn(downloadSqlCipher) }
+    }
+    // A second test binary links the system SQLite, which most apps use. Its task is
+    // iosSimulatorArm64SystemSqliteTest.
+    binaries.test("systemSqlite", listOf(NativeBuildType.DEBUG)) { linkerOpts("-lsqlite3") }
+    testRuns.create("systemSqlite") {
+      setExecutionSourceFrom(binaries.getTest("systemSqlite", NativeBuildType.DEBUG))
+    }
   }
 
   // useEsModules() is required so the SQLite-WASM Web Worker (loaded via `new Worker(new
