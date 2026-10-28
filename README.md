@@ -149,7 +149,7 @@ Set `enableEncryption = true` to store the database encrypted with
   app target in place of `libsqlite3.tbd`. Build the Kotlin framework as static, so the app's link
   decides which SQLite the engine calls. The key is 32 random bytes kept in the Keychain, which
   only works in a signed build. If the app links the system SQLite instead, the first database call
-  fails with a message saying SQLCipher is not linked.
+  throws `DatabaseEncryptionException` with `errorCode` `UNSUPPORTED`.
 - **Desktop and web.** Not supported. `FhirEngineProvider.init` throws
   `UnsupportedOperationException` rather than silently storing plaintext. See
   [Desktop and web](#desktop-and-web) for why, and what support would need.

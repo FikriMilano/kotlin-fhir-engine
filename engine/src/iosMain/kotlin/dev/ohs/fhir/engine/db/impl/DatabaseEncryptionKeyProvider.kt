@@ -58,6 +58,8 @@ import platform.posix.memcpy
  * Keeps a random database key in the Keychain. The key is readable after the first unlock, so
  * background sync can open the database. It never leaves this device, so a backup restored on
  * another device cannot read the database.
+ *
+ * Every failure is a [DatabaseEncryptionException], as on Android, so callers catch one type.
  */
 @OptIn(ExperimentalForeignApi::class)
 internal object DatabaseEncryptionKeyProvider {
@@ -80,9 +82,13 @@ internal object DatabaseEncryptionKeyProvider {
 
   private fun createKey(): ByteArray {
     val key = ByteArray(KEY_SIZE)
-    key.usePinned {
-      check(
-        SecRandomCopyBytes(kSecRandomDefault, KEY_SIZE.toULong(), it.addressOf(0)) == errSecSuccess,
+    val randomStatus =
+      key.usePinned { SecRandomCopyBytes(kSecRandomDefault, KEY_SIZE.toULong(), it.addressOf(0)) }
+    if (randomStatus != errSecSuccess) {
+      throw DatabaseEncryptionException(
+        null,
+        UNKNOWN,
+        "Could not generate a random database key, status $randomStatus.",
       )
     }
     val data = CFBridgingRetain(key.toNSData())

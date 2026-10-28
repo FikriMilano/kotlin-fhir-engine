@@ -38,8 +38,8 @@ import kotlinx.coroutines.test.runTest
  * Runs where the platform can encrypt, so desktop and web are not covered here.
  *
  * Reading the file header back is the only evidence in the whole suite that any of this makes bytes
- * unreadable. The cipher version guard and the real Keychain are untested, the Keychain because the
- * simulator has none.
+ * unreadable. The real Keychain is untested because the simulator test process has none. iOS
+ * without SQLCipher is covered by SqlCipherNotLinkedTest.
  */
 class EncryptedDatabaseTest {
   private val support = encryptionTestSupport

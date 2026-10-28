@@ -23,6 +23,8 @@ import androidx.sqlite.SQLiteException
 import androidx.sqlite.driver.NativeSQLiteDriver
 import androidx.sqlite.execSQL
 import dev.ohs.fhir.engine.DatabaseErrorStrategy
+import dev.ohs.fhir.engine.db.DatabaseEncryptionException
+import dev.ohs.fhir.engine.db.DatabaseEncryptionException.DatabaseEncryptionErrorCode.UNSUPPORTED
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -91,10 +93,14 @@ private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorSt
     val connection = driver.open(fileName)
     try {
       connection.execSQL("PRAGMA key = \"x'${key.toHexString()}'\"")
-      check(
-        connection.prepare("PRAGMA cipher_version").use { it.step() && it.getText(0).isNotEmpty() },
-      ) {
-        "SQLCipher is not linked into the app, so the database cannot be encrypted."
+      val sqlCipherLinked =
+        connection.prepare("PRAGMA cipher_version").use { it.step() && it.getText(0).isNotEmpty() }
+      if (!sqlCipherLinked) {
+        throw DatabaseEncryptionException(
+          null,
+          UNSUPPORTED,
+          "SQLCipher is not linked into the app, so the database cannot be encrypted.",
+        )
       }
       // Reads the header, which fails when the key does not match the file.
       connection.prepare("SELECT count(*) FROM sqlite_master").use { it.step() }
