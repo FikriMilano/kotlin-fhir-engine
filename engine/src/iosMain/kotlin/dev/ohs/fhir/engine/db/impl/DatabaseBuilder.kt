@@ -76,9 +76,13 @@ private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorSt
     try {
       openKeyed(fileName)
     } catch (exception: SQLiteException) {
-      // A database the current key cannot read is unrecoverable, so the caller may ask for a new
-      // one.
-      if (errorStrategy != DatabaseErrorStrategy.RECREATE_AT_OPEN) throw exception
+      // Recreate only an unreadable or corrupt file. Other errors, such as a locked database or a
+      // full disk, are thrown so data that is still readable is kept.
+      if (
+        errorStrategy != DatabaseErrorStrategy.RECREATE_AT_OPEN || !exception.isUnreadableDatabase
+      ) {
+        throw exception
+      }
       deleteDatabaseFiles(fileName)
       openKeyed(fileName)
     }
@@ -123,6 +127,22 @@ private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorSt
     val DATABASE_FILE_SUFFIXES = listOf("", "-wal", "-shm", "-journal")
   }
 }
+
+/**
+ * Whether SQLite reported the file as not a database (26) or corrupt (11).
+ *
+ * The native [SQLiteException] has no code property. Its message starts with `Error code: N`, so
+ * the code is parsed from there. Extended codes are on, so the primary code is the low byte.
+ */
+internal val SQLiteException.isUnreadableDatabase: Boolean
+  get() {
+    val code = message?.let { ERROR_CODE.find(it) }?.groupValues?.get(1)?.toInt() ?: return false
+    return (code and 0xff) in setOf(SQLITE_CORRUPT, SQLITE_NOTADB)
+  }
+
+private val ERROR_CODE = Regex("""^Error code: (\d+)""")
+private const val SQLITE_CORRUPT = 11
+private const val SQLITE_NOTADB = 26
 
 internal actual fun databaseFileName(
   platformContext: Any,
