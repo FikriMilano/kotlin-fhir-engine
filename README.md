@@ -85,6 +85,14 @@ kotlin {
 }
 ```
 
+On iOS the engine does not bundle SQLite, so the app must link one, even without encryption. Link
+the system SQLite, or SQLCipher to encrypt (see [Encryption](#encryption)). Otherwise the app fails
+to link with undefined `sqlite3_` symbols. Releases up to 2.0.0-alpha04 bundled SQLite, so apps
+upgrading from them must add it.
+
+In Xcode, add `libsqlite3.tbd` under *Frameworks, Libraries, and Embedded Content*, or add
+`-lsqlite3` to *Other Linker Flags*.
+
 #### Android projects
 
 For Android projects, add the dependency to the `dependencies` block in the module's
