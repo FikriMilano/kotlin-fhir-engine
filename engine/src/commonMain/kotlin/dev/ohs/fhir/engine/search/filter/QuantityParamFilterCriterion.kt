@@ -25,7 +25,7 @@ import dev.ohs.fhir.model.r4.SearchParameter.SearchComparator
 
 /**
  * Represents a criterion for filtering [QuantityClientParam]. e.g.
- * filter(Observation.VALUE_QUANTITY,{value = BigDecimal("5.403")} )
+ * filter(QuantityClientParam("value-quantity"),{value = BigDecimal("5.403")} )
  */
 @SearchDslMarker
 data class QuantityParamFilterCriterion(

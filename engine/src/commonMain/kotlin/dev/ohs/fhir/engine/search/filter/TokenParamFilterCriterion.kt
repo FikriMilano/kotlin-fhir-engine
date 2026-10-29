@@ -27,8 +27,8 @@ import dev.ohs.fhir.model.r4.Identifier
 import dev.ohs.fhir.model.r4.Uri
 
 /**
- * Represents a criterion for filtering [TokenClientParam]. e.g. filter(Patient.GENDER, { value =
- * of(Code(value = "male")) })
+ * Represents a criterion for filtering [TokenClientParam]. e.g. filter(TokenClientParam("gender"),
+ * { value = of(Code(value = "male")) })
  */
 @SearchDslMarker
 data class TokenParamFilterCriterion(var parameter: TokenClientParam) : FilterCriterion {

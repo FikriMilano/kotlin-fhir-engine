@@ -22,8 +22,8 @@ import dev.ohs.fhir.engine.search.StringClientParam
 import dev.ohs.fhir.engine.search.StringFilterModifier
 
 /**
- * Represents a criterion for filtering [StringClientParam]. e.g. filter(Patient.FAMILY, { value =
- * "Jones" })
+ * Represents a criterion for filtering [StringClientParam]. e.g.
+ * filter(StringClientParam("family"), { value = "Jones" })
  */
 @SearchDslMarker
 data class StringParamFilterCriterion(

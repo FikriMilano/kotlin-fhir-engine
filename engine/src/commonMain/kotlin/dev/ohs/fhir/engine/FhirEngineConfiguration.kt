@@ -23,9 +23,10 @@ import dev.ohs.fhir.engine.sync.remote.HttpLogger
  * Configuration for the FHIR Engine, including database setup, error recovery, server connection,
  * and custom search parameters.
  *
- * @property enableEncryption Encrypt the database on platforms that support it, currently Android.
- *   On other platforms [FhirEngineProvider.init] throws [UnsupportedOperationException] rather than
- *   storing data unencrypted. The in-memory database of [testMode] is not encrypted.
+ * @property enableEncryption Encrypt the database on Android and iOS. On iOS the app must link
+ *   SQLCipher. On other platforms [FhirEngineProvider.init] throws [UnsupportedOperationException]
+ *   rather than storing data unencrypted. On Android the in-memory database of [testMode] is not
+ *   encrypted.
  * @property databaseErrorStrategy The strategy to handle database errors. Defaults to
  *   [DatabaseErrorStrategy.UNSPECIFIED].
  * @property serverConfiguration Optional configuration for connecting to a remote FHIR server.
@@ -113,7 +114,7 @@ data class NetworkConfiguration(
  * Configuration for HTTP caching of network requests.
  *
  * @property cacheDir The directory path used for caching (platform-agnostic string path).
- * @property maxSize The maximum size of the cache in bits, e.g., `50L * 1024L * 1024L` for 50 MiB.
+ * @property maxSize The maximum size of the cache in bytes, e.g., `50L * 1024L * 1024L` for 50 MiB.
  */
 data class CacheConfiguration(
   val cacheDir: String,

@@ -45,8 +45,8 @@ inline fun <reified R : Resource> Search.has(
  * Example usage (Search for all Patients with Condition - Diabetes):
  * ```
  *   fhirEngine.search<Patient> {
- *        has(resourceType = ResourceType.Condition, referenceParam = (Condition.SUBJECT) {
- *          filter(Condition.CODE, Coding("http://snomed.info/sct", "44054006", "Diabetes"))
+ *        has(resourceType = ResourceType.Condition, referenceParam = (ReferenceClientParam("subject")) {
+ *          filter(TokenClientParam("code"), Coding("http://snomed.info/sct", "44054006", "Diabetes"))
  *        }
  *     }
  * ```
@@ -84,11 +84,11 @@ inline fun <reified R : Resource> Search.include(
  *
  * ```
  * fhirEngine.search<Patient> {
- *  filter(Patient.GIVEN, { value = "James" })
- *   include(ResourceType.Practitioner, Patient.GENERAL_PRACTITIONER) {
- *    filter(Practitioner.ACTIVE, { value = of(true) })
+ *  filter(StringClientParam("given"), { value = "James" })
+ *   include(ResourceType.Practitioner, ReferenceClientParam("general-practitioner")) {
+ *    filter(TokenClientParam("active"), { value = of(true) })
  *   }
- *   include(ResourceType.Organization,Patient.ORGANIZATION)
+ *   include(ResourceType.Organization,ReferenceClientParam("organization"))
  * }
  * ```
  *
@@ -129,10 +129,10 @@ inline fun <reified R : Resource> Search.revInclude(
  *
  * ```
  * fhirEngine.search<Patient> {
- *  filter(Patient.GIVEN, { value = "James" })
- *  revInclude(ResourceType.Encounter, Encounter.PATIENT)
- *  revInclude(ResourceType.Condition, Condition.PATIENT) {
- *     filter(Condition.CODE, { value = of(diabetesCodeableConcept) })
+ *  filter(StringClientParam("given"), { value = "James" })
+ *  revInclude(ResourceType.Encounter, ReferenceClientParam("patient"))
+ *  revInclude(ResourceType.Condition, ReferenceClientParam("patient")) {
+ *     filter(TokenClientParam("code"), { value = of(diabetesCodeableConcept) })
  *  }
  * }
  * ```

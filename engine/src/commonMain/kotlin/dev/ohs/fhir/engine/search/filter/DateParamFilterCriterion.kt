@@ -28,8 +28,8 @@ import dev.ohs.fhir.model.r4.SearchParameter.SearchComparator
 import dev.ohs.fhir.model.r4.terminologies.ResourceType
 
 /**
- * Represents a criterion for filtering [DateClientParam]. e.g. filter(Patient.BIRTHDATE, { value
- * =of(FhirDate.fromString("2013-03-14")) })
+ * Represents a criterion for filtering [DateClientParam]. e.g. filter(DateClientParam("birthdate"),
+ * { value =of(FhirDate.fromString("2013-03-14")) })
  */
 @SearchDslMarker
 data class DateParamFilterCriterion(

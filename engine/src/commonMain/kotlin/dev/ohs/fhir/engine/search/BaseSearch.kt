@@ -79,9 +79,8 @@ interface BaseSearch {
   )
 
   /**
-   * When sorting is applied on a field with repeated values (e.g. [Patient.GIVEN] ), the order is
-   * defined by the `value` of the repeated values in the resource (e.g. [HumanName.given] for
-   * [Patient]).
+   * When sorting is applied on a field with repeated values (e.g. `given`), the order is defined by
+   * the `value` of the repeated values in the resource (e.g. [HumanName.given] for [Patient]).
    *
    * If there are two Patients p1 and p2 as follows
    *
@@ -119,8 +118,8 @@ interface BaseSearch {
    * }
    * ```
    *
-   * Then sorting the patients in ascending or descending order with their given i.e [Patient.GIVEN]
-   * depends on the smallest (`1`, `3`) or largest (`2`, `4`) given in the first name respectively .
+   * Then sorting the patients in ascending or descending order with their given i.e `given` depends
+   * on the smallest (`1`, `3`) or largest (`2`, `4`) given in the first name respectively .
    */
   fun sort(parameter: StringClientParam, order: Order)
 
