@@ -27,14 +27,7 @@ import platform.Foundation.dataWithContentsOfFile
 import platform.posix.memcpy
 
 /** Whether this test binary links SQLCipher. False in iosSimulatorArm64SystemSqliteTest. */
-internal val isSqlCipherLinked: Boolean =
-  NativeSQLiteDriver().open(":memory:").let { connection ->
-    try {
-      connection.prepare("PRAGMA cipher_version").use { it.step() && it.getText(0).isNotEmpty() }
-    } finally {
-      connection.close()
-    }
-  }
+internal val isSqlCipherLinked: Boolean = NativeSQLiteDriver().linksSqlCipher()
 
 @OptIn(ExperimentalForeignApi::class)
 internal actual val encryptionTestSupport: EncryptionTestSupport? =

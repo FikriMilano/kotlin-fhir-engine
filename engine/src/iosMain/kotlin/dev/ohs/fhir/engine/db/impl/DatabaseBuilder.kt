@@ -59,8 +59,8 @@ internal actual fun databaseDriver(config: DatabaseConfig): SQLiteDriver =
   if (config.encrypt) EncryptedDatabaseDriver(config.errorStrategy) else NativeSQLiteDriver()
 
 /**
- * Keys every connection with the Keychain key. The engine does not ship SQLCipher, the app links it
- * in place of the system SQLite, so the first open checks that it actually did.
+ * Keys every connection with the Keychain key. The app links SQLCipher, not the engine, so every
+ * open first checks that it is linked.
  */
 private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorStrategy) :
   SQLiteDriver {
@@ -89,19 +89,21 @@ private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorSt
       openKeyed(fileName)
     }
 
+  // Checked on an in-memory database. Opening the file would create it, and an empty encrypted file
+  // then stops the app from turning encryption off.
+  private val sqlCipherLinked by lazy { driver.linksSqlCipher() }
+
   private fun openKeyed(fileName: String): SQLiteConnection {
+    if (!sqlCipherLinked) {
+      throw DatabaseEncryptionException(
+        null,
+        UNSUPPORTED,
+        "SQLCipher is not linked into the app, so the database cannot be encrypted.",
+      )
+    }
     val connection = driver.open(fileName)
     try {
       connection.execSQL("PRAGMA key = \"x'${key.toHexString()}'\"")
-      val sqlCipherLinked =
-        connection.prepare("PRAGMA cipher_version").use { it.step() && it.getText(0).isNotEmpty() }
-      if (!sqlCipherLinked) {
-        throw DatabaseEncryptionException(
-          null,
-          UNSUPPORTED,
-          "SQLCipher is not linked into the app, so the database cannot be encrypted.",
-        )
-      }
       // Reads the header, which fails when the key does not match the file.
       connection.prepare("SELECT count(*) FROM sqlite_master").use { it.step() }
     } catch (exception: Throwable) {
@@ -131,6 +133,16 @@ private class EncryptedDatabaseDriver(private val errorStrategy: DatabaseErrorSt
 
   private companion object {
     val DATABASE_FILE_SUFFIXES = listOf("", "-wal", "-shm", "-journal")
+  }
+}
+
+/** Whether the SQLite the app links is SQLCipher. */
+internal fun NativeSQLiteDriver.linksSqlCipher(): Boolean {
+  val connection = open(":memory:")
+  return try {
+    connection.prepare("PRAGMA cipher_version").use { it.step() && it.getText(0).isNotEmpty() }
+  } finally {
+    connection.close()
   }
 }
 

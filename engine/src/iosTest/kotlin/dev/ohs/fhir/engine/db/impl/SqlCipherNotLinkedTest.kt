@@ -25,6 +25,7 @@ import dev.ohs.fhir.model.r4.terminologies.ResourceType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.test.runTest
 import platform.Foundation.NSFileManager
@@ -40,8 +41,6 @@ class SqlCipherNotLinkedTest {
       databaseFileName(Unit, null, DatabaseConfig()),
       error = null,
     )
-    // The simulator test process has no Keychain.
-    DatabaseEncryptionKeyProvider.keySourceForTesting = { ByteArray(32) { 1 } }
     val config = DatabaseConfig(encrypt = true)
     val database =
       DatabaseImpl(
@@ -56,6 +55,8 @@ class SqlCipherNotLinkedTest {
           database.select(ResourceType.Patient, "any")
         }
       assertEquals(UNSUPPORTED, exception.errorCode)
+      // An empty file left here would stop the app from turning encryption off.
+      assertFalse(databaseFileExists(Unit, null, config))
     } finally {
       database.close()
       NSFileManager.defaultManager.removeItemAtPath(
