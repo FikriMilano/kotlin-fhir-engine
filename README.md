@@ -91,7 +91,18 @@ to link with undefined `sqlite3_` symbols. Releases up to 2.0.0-alpha04 bundled 
 upgrading from them must add it.
 
 In Xcode, add `libsqlite3.tbd` under *Frameworks, Libraries, and Embedded Content*, or add
-`-lsqlite3` to *Other Linker Flags*.
+`-lsqlite3` to *Other Linker Flags*. A dynamic Kotlin framework is linked by Gradle, not Xcode, so
+add the flag in Gradle instead:
+
+```
+kotlin {
+    listOf(iosArm64(), iosSimulatorArm64()).forEach {
+        it.binaries.framework {
+            linkerOpts("-lsqlite3")
+        }
+    }
+}
+```
 
 #### Android projects
 
