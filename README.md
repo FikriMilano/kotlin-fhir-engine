@@ -85,13 +85,16 @@ kotlin {
 }
 ```
 
-On iOS the engine does not bundle SQLite, so the app must link one, even without encryption. Link
-the system SQLite, or SQLCipher to encrypt (see [Encryption](#encryption)). Otherwise the app fails
-to link with undefined `sqlite3_` symbols. Releases up to 2.0.0-alpha04 bundled SQLite, so apps
-upgrading from them must add it.
+On iOS the app must link SQLite, even without encryption. The engine does not include SQLite on
+iOS, so the app can choose SQLCipher instead, which is how encryption works on iOS. Link the system
+SQLite, or SQLCipher to encrypt (see [Encryption](#encryption)). Without either, the app fails to
+link with undefined `sqlite3_` symbols. Releases up to 2.0.0-alpha04 included SQLite, so apps
+upgrading from them must add this.
 
 In Xcode, add `libsqlite3.tbd` under *Frameworks, Libraries, and Embedded Content*, or add
-`-lsqlite3` to *Other Linker Flags*. A dynamic Kotlin framework is linked by Gradle, not Xcode, so
+`-lsqlite3` to *Other Linker Flags*. Apple explains linking a library in
+[Link against additional frameworks and libraries](https://developer.apple.com/documentation/xcode/customizing-the-build-phases-of-a-target#Link-against-additional-frameworks-and-libraries).
+A dynamic Kotlin framework is linked by Gradle, not Xcode, so
 add the flag in Gradle instead:
 
 ```
@@ -157,10 +160,12 @@ Set `enableEncryption = true` to store the database encrypted with
   the same way the android-fhir engine does it. Opening an encrypted android-fhir database is not
   yet verified.
 - **iOS.** Add the [SQLCipher.swift](https://github.com/sqlcipher/SQLCipher.swift) package to the
-  app target in place of `libsqlite3.tbd`. Build the Kotlin framework as static, so the app's link
-  decides which SQLite the engine calls. The key is 32 random bytes kept in the Keychain, which
-  only works in a signed build. If the app links the system SQLite instead, the first database call
-  throws `DatabaseEncryptionException` with `errorCode` `UNSUPPORTED`.
+  app target in place of `libsqlite3.tbd`, as Apple describes in
+  [Adding package dependencies to your app](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app).
+  Build the Kotlin framework as static, so the app's link decides which SQLite the engine calls. The
+  key is 32 random bytes kept in the Keychain, which only works in a signed build. If the app links
+  the system SQLite instead, the first database call throws `DatabaseEncryptionException` with
+  `errorCode` `UNSUPPORTED`.
 - **Desktop and web.** Not supported. `FhirEngineProvider.init` throws
   `UnsupportedOperationException` rather than silently storing plaintext. See
   [Desktop and web](#desktop-and-web) for why, and what support would need.
@@ -444,6 +449,17 @@ ships, this workaround — and the local `sqlite-wasm-worker` module in `:engine
 longer be necessary.
 
 ## Developer guide
+
+### Running the iOS tests
+
+The iOS tests run twice, once against each SQLite an app can link. Both need Xcode.
+
+```bash
+./gradlew :engine:iosSimulatorArm64Test            # with SQLCipher, downloaded on first run
+./gradlew :engine:iosSimulatorArm64SystemSqliteTest  # with the system SQLite
+```
+
+Encryption tests run only with SQLCipher. With the system SQLite they return early.
 
 ### Publishing
 
